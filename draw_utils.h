@@ -27,11 +27,14 @@ auto updateBufferData(const std::vector<float>& vertices) -> void;
 
 // forward declarations for interface.cpp
 auto initializeImGui(GLFWwindow* window)																		       -> void;
+void menuBar();
 auto getUserInput(std::vector<Object>& object)																	       -> void;
+auto getObjectInputFloats(Object& obj)																				   -> bool;
 auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object) -> void;
 auto showVariables(std::vector<Object>& object)																	       -> void;
-bool getObjectInputFloats(Object& obj);
 
+auto generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)					  -> int;
+auto extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes) -> void;
 
 void drawObjectLabels
 (
@@ -51,10 +54,5 @@ void drawAxisLabels
 	const glm::vec2& viewportPos,
 	const glm::vec2& viewportSize
 );
-
-//void buildAndRegisterObject(Object::Type type, const std::vector<float>& components, const glm::vec4& color, const std::array<int, 3>& pIDs = { -1, -1, -1 }, const std::array<int, 3>& pCompIndex = { -1, -1, -1 });
-int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData);
-
-void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes);
 
 #endif

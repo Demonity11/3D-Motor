@@ -9,6 +9,9 @@
 #include <sstream>
 #include <iostream>
 
+#include "fileManager.h"
+#include <filesystem>
+
 struct AutocompleteContext 
 {
 	bool textWasEdited = false;
@@ -60,6 +63,128 @@ void initializeImGui(GLFWwindow* window)
 
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
+}
+
+void menuBar()
+{
+	static bool openNewFilePopup{ false };
+	static std::string overwriteFilename{};
+
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("Scene"))
+		{
+			if (ImGui::BeginMenu("Open"))
+			{
+				// Iterate over all files and subdirectories in the given path
+				for (const auto& entry : std::filesystem::directory_iterator("save/"))
+				{
+					if (ImGui::MenuItem(entry.path().filename().string().c_str()))
+					{
+						loadSceneFromFile(entry.path().filename().string());
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Save"))
+			{
+				if (ImGui::MenuItem("New File"))
+				{
+					openNewFilePopup = true;
+				}
+
+				if (ImGui::BeginMenu("Overwrite"))
+				{
+					for (const auto& entry : std::filesystem::directory_iterator("save/"))
+					{
+						if (ImGui::MenuItem(entry.path().filename().string().c_str()))
+						{
+							overwriteFilename = entry.path().filename().string();
+						}
+					}
+
+					ImGui::EndMenu();
+				}
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Delete"))
+			{
+				// Iterate over all files and subdirectories in the given path
+				for (const auto& entry : std::filesystem::directory_iterator("save/"))
+				{
+					if (ImGui::MenuItem(entry.path().filename().string().c_str()))
+					{
+						removeFile(entry.path().filename().string());
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMenuBar();
+	}
+
+	if (overwriteFilename.size() > 0)
+	{
+		writeFile(overwriteFilename, Context::inputData);
+		overwriteFilename = "";
+	}
+
+	if (openNewFilePopup)
+	{
+		ImGui::OpenPopup("Create New File");
+		openNewFilePopup = false;
+	}
+
+	// creates new file
+	if (ImGui::BeginPopupModal("Create New File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		static char inputBuf[20]{};
+
+		bool enterPressed{ ImGui::InputTextWithHint("File name", "Enter file name (e.g.: banana)", inputBuf, sizeof(inputBuf), ImGuiInputTextFlags_EnterReturnsTrue) };
+
+		const std::string filename{ inputBuf };
+
+		if ((ImGui::Button("Save") || enterPressed) && filename.size() > 0 && Context::inputData.size() > 0)
+		{
+			const std::string filenamePlusExtension{ filename + ".geo" };
+			bool foundExistingFile{ false };
+
+			for (const auto& entry : std::filesystem::directory_iterator("save/"))
+			{
+				if (filenamePlusExtension == entry.path().filename().string())
+				{
+					std::cerr << "ERROR::FILENAME<" << filename << ">::ALREADY_EXIST\n";
+					foundExistingFile = true;
+				}
+			}
+			
+			if (!foundExistingFile)
+			{
+				writeFile(filename, Context::inputData);
+			}
+
+			inputBuf[0] = '\0'; 
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Cancel"))
+		{
+			inputBuf[0] = '\0';
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
 }
 
 // captures user input through Dear ImGui interface
@@ -208,23 +333,28 @@ void getUserInput(std::vector<Object>& object)
 
 void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object)
 {
-	auto ss{ std::stringstream(inputBuffer) };
-	auto inputText{ ss.str() };
+	//auto ss{ std::stringstream(inputBuffer) };
+	std::string inputText{ inputBuffer };
 
 	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(3,3,3)\nSegment(A,B)\nVector(A)\nLine(A,u)\nPlane(A,u)\n") };
 	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nPlane(A,B,C)\nVector(A,B)\nVector(B,C)\nPoint(3,-2,-3)\nLine(A,D)\nCross(u,v)\n") };
 	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nVector(A,B)\nVector(A,C)\nCross(u,v)\n") };
 	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nPlane(A,B,C)\nPoint(-3,2,1)\nPoint(4,-2,3)\nLine(D,E)\nIntersect(r,p)\n") };
 	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nPlane(A,B,C)\nPoint(-3,2,1)\nPoint(4,-2,3)\nPoint(2,1,-3)\nPlane(D,E,F)\nIntersect(p,q)\nVector(A,B)\nVector(D,E)\nCross(u,v)\n") };
-	static auto inputArray{ testInput(
-		"Point(1,1,1)\n"
-		"Point(2,2,2)\n"
-		"Point(3,3,3)\n"
-		"Plane(Point(-2,1,-3), Vector(B,C))\n"
-		"Cross(Vector(A,B), Vector(Point(-2,-1,3), Point(-3,1,-2)))\n"
-		"Line(A,B)\n"
-		"Intersect(r,p)\n"
-	) };
+	//static auto inputArray{ testInput(
+	//	"Point(1,1,1)\n"
+	//	"Point(2,2,2)\n"
+	//	"Point(3,3,3)\n"
+	//	"Plane(Point(-2,1,-3), Vector(B,C))\n"
+	//	"Cross(Vector(A,B), Vector(Point(-2,-1,3), Point(-3,1,-2)))\n"
+	//	"Line(A,B)\n"
+	//	"Intersect(r,p)\n"
+	//) };
+
+	//std::cout << openFile("aaa.geo");
+
+	static auto inputArray{ readFile("aaa.geo") };
+	std::cout << inputArray.size() << "\n";
 
 	//static auto inputArray{ testInput("") };
 
@@ -259,6 +389,7 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 	Lexer::tokens.clear();
 	Parser::nodes.clear();
 
+	Context::inputData += inputText + "\n";
 	inputBuffer[0] = '\0';
 }
 

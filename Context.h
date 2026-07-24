@@ -64,6 +64,8 @@ namespace Context
 	inline int selectedObjID{ -1 };
 
 	inline int globalObjectIDCounter{ 0 };
+
+	extern std::string inputData;
 }
 
 #endif

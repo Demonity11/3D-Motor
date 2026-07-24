@@ -34,7 +34,7 @@ namespace Parser
 	extern std::vector<Node> nodes;
 }
 
-std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp = 0);
-void printNodes(const std::vector<Node>& nodes);
+auto parser(const std::vector<Token>& tokens, size_t tp = 0) -> std::optional<ParseResult>;
+auto printNodes(const std::vector<Node>& nodes) -> void;
 
 #endif

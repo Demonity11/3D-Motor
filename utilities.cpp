@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <sstream>
 
+#include "fileManager.h"
+
 std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 {
 	os << vec.x << ", " << vec.y << ", " << vec.z;
@@ -1031,23 +1033,30 @@ RuntimeValue intersectionPlanePlane(const Eval::Plane& plane1, const Eval::Plane
 	return intersection;
 }
 
-std::vector<std::string> testInput(std::string input)
+std::vector<std::string> testInput(const std::string& input)
 {
 	std::vector<std::string> inputArray{};
 
 	std::string str{};
 	for (auto c : input)
 	{
+		std::cout << c;
+
 		if (c == '\n')
 		{
 			inputArray.push_back(str);
+			std::cout << str << "\n";
 			str.clear();
 		}
 		else
 		{
+			if (c == ' ' || c == '\t') continue;
+
 			str += c;
 		}
 	}
+
+	std::cout << '\n';
 
 	return inputArray;
 }
@@ -1447,4 +1456,69 @@ std::optional<Eval::Line> extractLine(const RuntimeValue& val)
 	if (const auto* il = std::get_if<Eval::ILine>(&val)) return il->line;
 	
 	return std::nullopt;
+}
+
+void resetScene()
+{
+	using namespace Context;
+
+	vertexData.clear();
+	symbolTable.clear();
+	object.clear();
+
+	prevSelectedObjID = -1;
+	selectedObjID = -1;
+	globalObjectIDCounter = 0;
+	inputData = "";
+
+	objectSymbols = std::map<Object::Type, char>
+					{
+						{ Object::Vector,  'u' },
+						{ Object::Point,   'A' },
+						{ Object::Segment, 'f' },
+						{ Object::Plane,   'p' },
+						{ Object::Line,    'r' }
+					};
+
+	getEnvironmentVertices(vertexData, true);
+}
+
+void loadSceneFromFile(const std::string& filename)
+{
+	resetScene();
+
+	const std::vector<std::string>& inputArray{ readFile(filename) };
+
+	for (const auto& input : inputArray)
+	{
+		tokenizer(input);
+		printTokens(Lexer::tokens);
+
+		parser(Lexer::tokens);
+		printNodes(Parser::nodes);
+
+		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
+		printRuntimeValue(evalObj);
+
+		if (std::holds_alternative<Context::RuntimeError>(evalObj))
+		{
+			Lexer::tokens.clear();
+			Parser::nodes.clear();
+
+			std::cerr << "ERROR::FAILED_TO_LOAD_SCENE\n";
+			return;
+		}
+
+		Context::inputData += input;
+		if (&input != &inputArray.back()) 
+		{
+			Context::inputData += "\n"; 
+		}
+
+		extractAndRegisterObject(evalObj, Context::object, Parser::nodes);
+		Lexer::tokens.clear();
+		Parser::nodes.clear();
+	}
+
+	updateBufferData(Context::vertexData);
 }

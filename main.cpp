@@ -6,6 +6,8 @@
 #include "Context.h"
 #include "evaluator.h"
 
+#include "fileManager.h"
+
 void processInput(GLFWwindow* window);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos);
@@ -96,7 +98,8 @@ int main()
 		ImGui::ShowDemoWindow();
 
 		ImGui::PushFont(Context::spaceFont, 16.0f);
-		ImGui::Begin("InputWindow");
+		ImGui::Begin("InputWindow", NULL, ImGuiWindowFlags_MenuBar);
+		menuBar();
 		getUserInput(Context::object);
 
 		int windowWidth{};
@@ -163,6 +166,8 @@ int main()
 		glfwSwapBuffers(window.getWindow());
 		glfwPollEvents();
 	}
+
+	//writeFile("bbb.geo", Context::inputData);
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

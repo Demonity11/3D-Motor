@@ -73,4 +73,6 @@ namespace Context
 	};
 
 	std::map<std::string, size_t> symbolTable{};
+
+	std::string inputData{};
 }

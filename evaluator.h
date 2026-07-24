@@ -12,20 +12,21 @@
 
 class Object;
 
-void printRuntimeValue(const RuntimeValue& value);
-std::optional<float> convertSVToFloat(std::string_view sv);
+auto printRuntimeValue(const RuntimeValue& value)   -> void;
+auto convertSVToFloat(std::string_view sv)			-> std::optional<float>;
 
-RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>& object, int nodeIdx = 0);
-RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args);
-RuntimeValue evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes);
-RuntimeValue evaluateCrossFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes);
-RuntimeValue evaluateSegmentFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes);
-RuntimeValue evaluateLineFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes);
-RuntimeValue evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes);
-RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes);
-RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args);
+auto evaluator(const std::vector<Node>& nodes, const std::vector<Object>& object, int nodeIdx = 0)					-> RuntimeValue;
 
-std::array<int, 3> findParentsIDs(const std::vector<Node>& nodes);
-Object::Type deduceTypeByIdentifierName(std::string_view func);
+auto evaluatePointFunc(const std::vector<RuntimeValue>& args)														-> RuntimeValue;
+auto evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)	-> RuntimeValue;
+auto evaluateCrossFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)		-> RuntimeValue;
+auto evaluateSegmentFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)	-> RuntimeValue;
+auto evaluateLineFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)		-> RuntimeValue;
+auto evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)		-> RuntimeValue;
+auto evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes) -> RuntimeValue;
+auto evaluateIntersectFunc(const std::vector<RuntimeValue>& args) -> RuntimeValue;
+
+auto findParentsIDs(const std::vector<Node>& nodes)		-> std::array<int, 3>;
+auto deduceTypeByIdentifierName(std::string_view func)  -> Object::Type;
 
 #endif
