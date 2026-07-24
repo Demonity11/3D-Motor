@@ -116,7 +116,7 @@ bool validateFileName(const std::string& filename)
     {
         if (filenamePlusExtension == entry.path().filename().string())
         {
-            std::cerr << "ERROR::FILENAME<" << filename << ">::ALREADY_EXIST\n";
+            std::cerr << "ERROR::FILE_NAME<" << filename << ">::ALREADY_EXIST\n";
             return false;
         }
     }

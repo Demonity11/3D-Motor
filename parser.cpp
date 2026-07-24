@@ -1,5 +1,6 @@
 #include "parser.h"
 #include <iostream>
+#include "Context.h"
 
 namespace Parser
 {
@@ -43,6 +44,13 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
 
     const Token& token{ tokens[tp] };
 
+    if (token.type == Token::Equals)
+    {
+        std::cerr << "ERROR::SYNTAX::UNEXPECTED_ASSIGNMENT_OPERATOR\n";
+        Parser::nodes.clear();
+        return {};
+    }
+
     if (token.type == Token::Number)
     {
         int myIdx{ static_cast<int>(nodes.size()) };
@@ -53,6 +61,25 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
 
     if (token.type == Token::Identifier)
     {
+        std::optional<std::string> targetName{ std::nullopt };
+
+        if (tp == 0 && tp + 3 < tokens.size() &&
+            tokens[tp + 1].type == Token::Equals &&
+            tokens[tp + 2].type == Token::Identifier &&
+            tokens[tp + 3].type == Token::LParen)
+        {
+            targetName = std::string(token.lexeme);
+            for (const auto& func : Context::function)
+            {
+                if (*targetName == func.name)
+                {
+                    std::cerr << "ERROR::SYNTAX<" << *targetName << ">::IS_RESERVED\n";
+                    return {};
+                }
+            }
+            tp += 2;
+        }
+
         if (tp + 1 < tokens.size() && tokens[tp + 1].type == Token::LParen)
         {
             if (tp + 2 < tokens.size() && tokens[tp + 2].type == Token::RParen)
@@ -63,7 +90,15 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
             }
 
             int parentIdx{ static_cast<int>(nodes.size()) };
-            nodes.push_back({ Node::Function, token.lexeme });
+            if (targetName)
+            {
+                nodes.push_back({ Node::Function, tokens[tp].lexeme, *targetName});
+            }
+
+            else
+            {
+                nodes.push_back({ Node::Function, token.lexeme });
+            }
 
             tp += 2;
             size_t childCount{ 0 };
@@ -145,6 +180,14 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
             }
 
             return ParseResult{ tp, parentIdx };
+        }
+
+        else if (tp + 1 < tokens.size() && tokens[tp + 1].type == Token::Equals)
+        {
+            int myIdx = static_cast<int>(nodes.size());
+            nodes.push_back({ Node::Variable, token.lexeme });
+
+            return ParseResult{ tp + 1, myIdx };
         }
 
         else

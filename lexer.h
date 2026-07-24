@@ -13,7 +13,8 @@ struct Token
 		LParen,
 		RParen,
 		Number,
-		Comma
+		Comma,
+		Equals
 	};
 
 	Type type{};

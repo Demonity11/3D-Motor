@@ -13,6 +13,7 @@ std::string_view convertTokenTo_string_view(Token::Type type)
 	switch (type)
 	{
 	case Token::Identifier: return "Identifier";
+	case Token::Equals: return "Equals";
 	case Token::LParen: return "LParen";
 	case Token::RParen: return "RParen";
 	case Token::Number: return "Number";
@@ -74,6 +75,11 @@ void tokenizer(const std::string& input)
 		else if (c == ',')
 		{
 			tokens.push_back({ Token::Comma, std::string_view(&input[l], 1) });
+		}
+
+		else if (c == '=')
+		{
+			tokens.push_back({ Token::Equals, std::string_view(&input[l], 1) });
 		}
 
 		else if (isAlpha(c))

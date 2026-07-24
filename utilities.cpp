@@ -1509,13 +1509,15 @@ void loadSceneFromFile(const std::string& filename)
 			return;
 		}
 
+		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
+
 		Context::inputData += input;
+		
 		if (&input != &inputArray.back()) 
 		{
 			Context::inputData += "\n"; 
 		}
 
-		extractAndRegisterObject(evalObj, Context::object, Parser::nodes);
 		Lexer::tokens.clear();
 		Parser::nodes.clear();
 	}

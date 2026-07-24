@@ -34,7 +34,7 @@ auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 auto showVariables(std::vector<Object>& object)																	       -> void;
 
 auto generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)					  -> int;
-auto extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes) -> void;
+auto extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes, const std::optional<std::string>& targetName) -> void;
 
 void drawObjectLabels
 (

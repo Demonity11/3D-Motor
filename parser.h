@@ -20,6 +20,7 @@ struct Node
 
 	Node::Type type{};
 	std::string_view content{};
+	std::optional<std::string> targetName{};
 	std::array<int, 3> children{ -1, -1, -1 };
 };
 

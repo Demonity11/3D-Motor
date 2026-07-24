@@ -319,37 +319,7 @@ void getUserInput(std::vector<Object>& object)
 
 void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object)
 {
-	//auto ss{ std::stringstream(inputBuffer) };
 	std::string inputText{ inputBuffer };
-
-	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(3,3,3)\nSegment(A,B)\nVector(A)\nLine(A,u)\nPlane(A,u)\n") };
-	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nPlane(A,B,C)\nVector(A,B)\nVector(B,C)\nPoint(3,-2,-3)\nLine(A,D)\nCross(u,v)\n") };
-	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nVector(A,B)\nVector(A,C)\nCross(u,v)\n") };
-	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nPlane(A,B,C)\nPoint(-3,2,1)\nPoint(4,-2,3)\nLine(D,E)\nIntersect(r,p)\n") };
-	//static auto inputArray{ testInput("Point(1,1,1)\nPoint(2,2,2)\nPoint(3,-1,2)\nPlane(A,B,C)\nPoint(-3,2,1)\nPoint(4,-2,3)\nPoint(2,1,-3)\nPlane(D,E,F)\nIntersect(p,q)\nVector(A,B)\nVector(D,E)\nCross(u,v)\n") };
-	//static auto inputArray{ testInput(
-	//	"Point(1,1,1)\n"
-	//	"Point(2,2,2)\n"
-	//	"Point(3,3,3)\n"
-	//	"Plane(Point(-2,1,-3), Vector(B,C))\n"
-	//	"Cross(Vector(A,B), Vector(Point(-2,-1,3), Point(-3,1,-2)))\n"
-	//	"Line(A,B)\n"
-	//	"Intersect(r,p)\n"
-	//) };
-
-	//std::cout << openFile("aaa.geo");
-
-	static auto inputArray{ readFile("aaa.geo") };
-	std::cout << inputArray.size() << "\n";
-
-	//static auto inputArray{ testInput("") };
-
-	// types input faster for testing
-	if (!inputArray.empty())
-	{
-		inputText = inputArray[0];
-		inputArray.erase(inputArray.begin());
-	}
 
 	tokenizer(inputText);
 
@@ -371,11 +341,13 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 		return;
 	}
 
-	extractAndRegisterObject(evalObj, object, Parser::nodes);
+	extractAndRegisterObject(evalObj, object, Parser::nodes, Parser::nodes[0].targetName);
+
+	Context::inputData += inputText + "\n";
+	
 	Lexer::tokens.clear();
 	Parser::nodes.clear();
 
-	Context::inputData += inputText + "\n";
 	inputBuffer[0] = '\0';
 }
 
@@ -858,7 +830,7 @@ void drawAxisLabels
 	}
 }
 
-void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes)
+void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes, const std::optional<std::string>& targetName)
 {
 	Object::Type type{ duduceRuntimeValueType(evalObj) };
 
@@ -870,7 +842,11 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 		return;
 	}
 
-	const std::string objName{ Context::objectSymbols[type]++ };
+	std::string objName{};
+
+	if (targetName) objName = *targetName;
+	else objName = Context::objectSymbols[type]++;
+
 	unsigned int primitive{ Context::primitives[type] };
 	glm::vec4 color{ Context::defaultColors[type] };
 
