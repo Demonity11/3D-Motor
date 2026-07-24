@@ -1,5 +1,6 @@
 #include "fileManager.h"
 #include <filesystem>
+#include "lexer.h"
 
 std::vector<std::string> readFile(const std::string& filename)
 {
@@ -85,4 +86,40 @@ int removeFile(const std::string& filename)
     }
 
     return 0;
+}
+
+bool validateFileName(const std::string& filename)
+{
+    if (filename.empty())
+    {
+        std::cerr << "ERROR::FILE_NAME_IS_EMPTY\n";
+        return false;
+    }
+
+    if (!isAlpha(filename[0]))
+    {
+        std::cerr << "ERROR::FILE_NAME_MUST_START_WITH_CHARACTER\n";
+        return false;
+    }
+
+    for (char c : filename)
+    {
+        if (!isAlnum(c))
+        {
+            std::cerr << "ERROR::FILE_NAME_CONTAIN_CHARACTER_NOT_ALPHANUMERIC\n";
+            return false;
+        }
+    }
+
+    const std::string filenamePlusExtension{ filename + ".geo" };
+    for (const auto& entry : std::filesystem::directory_iterator("save/"))
+    {
+        if (filenamePlusExtension == entry.path().filename().string())
+        {
+            std::cerr << "ERROR::FILENAME<" << filename << ">::ALREADY_EXIST\n";
+            return false;
+        }
+    }
+
+    return true;
 }

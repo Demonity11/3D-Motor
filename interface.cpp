@@ -154,22 +154,8 @@ void menuBar()
 
 		if ((ImGui::Button("Save") || enterPressed) && filename.size() > 0 && Context::inputData.size() > 0)
 		{
-			const std::string filenamePlusExtension{ filename + ".geo" };
-			bool foundExistingFile{ false };
-
-			for (const auto& entry : std::filesystem::directory_iterator("save/"))
-			{
-				if (filenamePlusExtension == entry.path().filename().string())
-				{
-					std::cerr << "ERROR::FILENAME<" << filename << ">::ALREADY_EXIST\n";
-					foundExistingFile = true;
-				}
-			}
-			
-			if (!foundExistingFile)
-			{
+			if (validateFileName(filename))
 				writeFile(filename, Context::inputData);
-			}
 
 			inputBuf[0] = '\0'; 
 			ImGui::CloseCurrentPopup();
