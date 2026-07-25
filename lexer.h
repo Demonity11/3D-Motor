@@ -4,6 +4,25 @@
 #include <vector>
 #include <string_view>
 #include <string>
+#include <optional>
+
+namespace Context
+{
+	enum ErrorSeverity
+	{
+		Info,
+		Warning,
+		Error
+	};
+
+	struct RuntimeError
+	{
+		std::string message{};
+		ErrorSeverity severity{ ErrorSeverity::Error };
+		size_t charPosition{ 0 };
+		size_t length{ 1 };
+	};
+}
 
 struct Token
 {
@@ -19,6 +38,8 @@ struct Token
 
 	Type type{};
 	std::string_view lexeme{};
+
+	size_t charPosition{};
 };
 
 namespace Lexer
@@ -26,9 +47,9 @@ namespace Lexer
 	extern std::vector<Token> tokens;
 }
 
-auto tokenizer(const std::string& input)		   -> void;
-auto convertTokenTo_string_view(Token::Type type)  -> std::string_view;
-auto printTokens(const std::vector<Token>& tokens) -> void;
+auto tokenizer(const std::string& input, std::optional<Context::RuntimeError>& diag) -> void;
+auto convertTokenTo_string_view(Token::Type type)					  -> std::string_view;
+auto printTokens(const std::vector<Token>& tokens)					  -> void;
 
 auto isAlnum(char ch) -> bool;
 auto isDigit(char ch) -> bool;

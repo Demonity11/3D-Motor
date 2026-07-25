@@ -1491,10 +1491,33 @@ void loadSceneFromFile(const std::string& filename)
 
 	for (const auto& input : inputArray)
 	{
-		tokenizer(input);
+		std::optional<Context::RuntimeError> diag{ std::nullopt };
+
+		tokenizer(input, diag);
+		if (diag)
+		{
+			Lexer::tokens.clear();
+
+			// do something
+
+			resetScene();
+			return;
+		}
+
 		printTokens(Lexer::tokens);
 
-		parser(Lexer::tokens);
+		parser(Lexer::tokens, diag);
+		if (diag)
+		{
+			Lexer::tokens.clear();
+			Parser::nodes.clear();
+
+			// do something
+
+			resetScene();
+			return;
+		}
+
 		printNodes(Parser::nodes);
 
 		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
@@ -1505,7 +1528,10 @@ void loadSceneFromFile(const std::string& filename)
 			Lexer::tokens.clear();
 			Parser::nodes.clear();
 
+			// do something
+
 			std::cerr << "ERROR::FAILED_TO_LOAD_SCENE\n";
+			resetScene();
 			return;
 		}
 

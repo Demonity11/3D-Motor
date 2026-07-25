@@ -6,9 +6,18 @@
 
 RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>& object, int nodeIdx)
 {
+    using Context::RuntimeError;
+    using Context::ErrorSeverity;
+
     if (nodes.empty())
     {
-        return Context::RuntimeError{ "SEMANTICS::ERROR::NODES_IS_EMPTY\n" };
+        return RuntimeError
+        { 
+            "Semantics Error at col 0: Nodes vector is empty.",
+            ErrorSeverity::Warning,
+            0,
+            0
+        };
     }
 
     const Node& node{ nodes[nodeIdx] };
@@ -19,7 +28,13 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
 
         if (!literal.has_value())
         {
-            return Context::RuntimeError{ "SEMANTICS::ERROR::LITERAL::INVALID_FLOAT_FORMAT\n" };
+            return RuntimeError
+            { 
+                "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": Invalid float format.",
+                ErrorSeverity::Error,
+                node.charPosition,
+                node.content.length()
+            };
         }
 
         return *literal;
@@ -39,7 +54,13 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
 
         if (!funcExist)
         {
-            return Context::RuntimeError{ "SEMANTICS::ERROR::FUNCTION::" + std::string(node.content) + "_DOES_NOT_EXIST\n" };
+            return RuntimeError
+            { 
+                "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": Function '" + std::string(node.content) + "' does not exist.",
+                ErrorSeverity::Error,
+                node.charPosition,
+                node.content.length()
+            };
         }
 
         std::vector<RuntimeValue> args{};
@@ -49,7 +70,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
             
             RuntimeValue childVal{ evaluator(nodes, object, childIdx) };
 
-            if (std::holds_alternative<Context::RuntimeError>(childVal))
+            if (std::holds_alternative<RuntimeError>(childVal))
             {
                 return childVal;
             }
@@ -86,7 +107,13 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
             return evaluateIntersectFunc(args, node, nodes);
         }
 
-        return Context::RuntimeError{ "SEMANTICS::ERROR::FUNCTION_NOT_FOUND\n" };
+        return RuntimeError
+        { 
+            "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": Function '" + std::string(node.content) + "' not found.",
+            ErrorSeverity::Error,
+            node.charPosition,
+            node.content.length()
+        };
     }
 
     else if (node.type == Node::Variable)
@@ -94,7 +121,13 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
         int objIdx{ searchObjectIndexByName(std::string(node.content), object) };
         if (objIdx == -1)
         {
-            return Context::RuntimeError{ "SEMANTICS::ERROR::VARIABLE::" + std::string(node.content) + "_DOES_NOT_EXIST\n" };
+            return RuntimeError
+            { 
+                "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": Variable '" + std::string(node.content) + "' does not exist.",
+                ErrorSeverity::Error,
+                node.charPosition,
+                node.content.length()
+            };
         }
 
         const Object& obj{ object[objIdx] };
@@ -102,7 +135,13 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
         return obj.getComponents();
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::UNKNOWN_NODE_TYPE\n" };
+    return RuntimeError
+    { 
+        "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": Unknown Token",
+        ErrorSeverity::Error,
+        node.charPosition,
+        node.content.length()
+    };
 }
 
 std::optional<float> convertSVToFloat(std::string_view sv)

@@ -27,11 +27,15 @@ auto updateBufferData(const std::vector<float>& vertices) -> void;
 
 // forward declarations for interface.cpp
 auto initializeImGui(GLFWwindow* window)																		       -> void;
+void setupCustomTheme();
 void menuBar();
 auto getUserInput(std::vector<Object>& object)																	       -> void;
 auto getObjectInputFloats(Object& obj)																				   -> bool;
-auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object) -> void;
+auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag) -> void;
 auto showVariables(std::vector<Object>& object)																	       -> void;
+
+void pushErrorStyle(const std::optional<Context::RuntimeError>& diag);
+void popErrorStyle(const std::optional<Context::RuntimeError>& diag);
 
 auto generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)					  -> int;
 auto extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes, const std::optional<std::string>& targetName) -> void;

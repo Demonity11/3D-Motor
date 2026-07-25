@@ -12,7 +12,7 @@
 #include "fileManager.h"
 #include <filesystem>
 
-struct AutocompleteContext 
+struct AutocompleteContext
 {
 	bool textWasEdited = false;
 	std::string textToInject{};
@@ -44,6 +44,25 @@ int AutocompleteCallback(ImGuiInputTextCallbackData* data)
 	return 0;
 }
 
+struct ErrorSelectionContext
+{
+	int start{ -1 };
+	int end{ -1 };
+};
+
+int ErrorSelectionCallback(ImGuiInputTextCallbackData* data)
+{
+	ErrorSelectionContext* ctx{ (ErrorSelectionContext*)data->UserData };
+
+	if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways && ctx->start != -1)
+	{
+		data->SelectionStart = ctx->start;
+		data->SelectionEnd = ctx->end;
+	}
+
+	return 0;
+}
+
 // initializes ImGui context
 void initializeImGui(GLFWwindow* window)
 {
@@ -65,6 +84,58 @@ void initializeImGui(GLFWwindow* window)
 	ImGui_ImplOpenGL3_Init("#version 330");
 }
 
+void setupCustomTheme()
+{
+	ImGuiStyle& style{ ImGui::GetStyle() };
+
+	style.WindowRounding = 8.0f;
+	style.FrameRounding = 5.0f;
+	style.PopupRounding = 6.0f;
+	style.ScrollbarRounding = 6.0f;
+	style.GrabRounding = 4.0f;
+	style.TabRounding = 5.0f;
+
+	style.WindowPadding = ImVec2(10.0f, 10.0f);
+	style.FramePadding = ImVec2(8.0f, 5.0f);
+	style.ItemSpacing = ImVec2(8.0f, 6.0f);
+	style.ItemInnerSpacing = ImVec2(6.0f, 4.0f);
+	style.IndentSpacing = 20.0f;
+
+	style.WindowBorderSize = 1.0f;
+	style.FrameBorderSize = 0.0f;
+	style.PopupBorderSize = 1.0f;
+
+	ImVec4* colors = style.Colors;
+
+	colors[ImGuiCol_WindowBg] = ImVec4(0.11f, 0.12f, 0.14f, 0.94f); // #1C1E24
+	colors[ImGuiCol_ChildBg] = ImVec4(0.14f, 0.15f, 0.18f, 0.60f);
+	colors[ImGuiCol_PopupBg] = ImVec4(0.14f, 0.15f, 0.18f, 0.98f);
+
+	colors[ImGuiCol_Border] = ImVec4(0.25f, 0.27f, 0.32f, 0.50f);
+	colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+	colors[ImGuiCol_Header] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
+	colors[ImGuiCol_HeaderHovered] = ImVec4(0.28f, 0.32f, 0.40f, 1.00f);
+	colors[ImGuiCol_HeaderActive] = ImVec4(0.24f, 0.27f, 0.34f, 1.00f);
+
+	colors[ImGuiCol_FrameBg] = ImVec4(0.18f, 0.20f, 0.24f, 1.00f);
+	colors[ImGuiCol_FrameBgHovered] = ImVec4(0.24f, 0.27f, 0.33f, 1.00f);
+	colors[ImGuiCol_FrameBgActive] = ImVec4(0.28f, 0.32f, 0.40f, 1.00f);
+
+	colors[ImGuiCol_Button] = ImVec4(0.23f, 0.46f, 0.81f, 0.80f); // #3B75CE
+	colors[ImGuiCol_ButtonHovered] = ImVec4(0.28f, 0.54f, 0.92f, 1.00f);
+	colors[ImGuiCol_ButtonActive] = ImVec4(0.19f, 0.40f, 0.72f, 1.00f);
+
+	colors[ImGuiCol_CheckMark] = ImVec4(0.38f, 0.72f, 1.00f, 1.00f);
+	colors[ImGuiCol_SliderGrab] = ImVec4(0.38f, 0.72f, 1.00f, 1.00f);
+	colors[ImGuiCol_SliderGrabActive] = ImVec4(0.23f, 0.56f, 0.88f, 1.00f);
+
+	// Text Colors
+	colors[ImGuiCol_Text] = ImVec4(0.92f, 0.93f, 0.95f, 1.00f);
+	colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.53f, 0.60f, 1.00f);
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.23f, 0.46f, 0.81f, 0.35f);
+}
+
 void menuBar()
 {
 	static bool openNewFilePopup{ false };
@@ -74,6 +145,18 @@ void menuBar()
 	{
 		if (ImGui::BeginMenu("Scene"))
 		{
+			if (ImGui::MenuItem("Clear Scene"))
+			{
+				if (Context::globalObjectIDCounter > 0)
+				{
+					resetScene();
+				}
+				else
+				{
+					std::cerr << "WARNING::SCENE_IS_ALREADY_EMPTY\n";
+				}
+			}
+
 			if (ImGui::BeginMenu("Open"))
 			{
 				// Iterate over all files and subdirectories in the given path
@@ -149,6 +232,7 @@ void menuBar()
 		static char inputBuf[20]{};
 
 		bool enterPressed{ ImGui::InputTextWithHint("File name", "Enter file name (e.g.: banana)", inputBuf, sizeof(inputBuf), ImGuiInputTextFlags_EnterReturnsTrue) };
+		//ImGui::SetKeyboardFocusHere(-1);
 
 		const std::string filename{ inputBuf };
 
@@ -176,6 +260,8 @@ void menuBar()
 // captures user input through Dear ImGui interface
 void getUserInput(std::vector<Object>& object)
 {
+	static std::optional<Context::RuntimeError> diag{ std::nullopt };
+
 	constexpr std::size_t bufferSize{ 128 };
 	static char inputBuffer[bufferSize] = "";
 
@@ -184,6 +270,7 @@ void getUserInput(std::vector<Object>& object)
 	static bool showDropdown{ false };
 
 	static AutocompleteContext context;
+	static ErrorSelectionContext errorContext;
 	static bool focusNextFrame{ false };
 
 	ImGuiInputTextFlags inputFlags
@@ -201,16 +288,38 @@ void getUserInput(std::vector<Object>& object)
 		focusNextFrame = false;
 	}
 
-	bool isEnterPressed{ ImGui::InputTextWithHint("Input", "input", inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, AutocompleteCallback, &context) };
+	bool isEnterPressed{ false };
+
+	if (diag)
+	{
+		errorContext.start = static_cast<int>(diag->charPosition);
+		errorContext.end = errorContext.start + static_cast<int>(diag->length);
+	}
+
+	pushErrorStyle(diag);
+	if (!diag) 
+		isEnterPressed = ImGui::InputTextWithHint("Input", "input", inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, AutocompleteCallback, &context);
+	else
+		isEnterPressed = ImGui::InputTextWithHint("Input", "input", inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, ErrorSelectionCallback, &errorContext);
+	popErrorStyle(diag);
+
+	if (ImGui::IsItemEdited())
+	{
+		diag = std::nullopt;
+		errorContext.start = -1;
+		errorContext.end = -1;
+	}
 
 	bool isInputActive{ ImGui::IsItemActive() };
 	bool isInputFocused{ ImGui::IsItemFocused() };
 
-	if (isInputActive || isInputFocused) {
+	if (isInputActive || isInputFocused) 
+	{
 		activePopupID = inputID;
 	}
 
-	if (context.textWasEdited && activePopupID == inputID) {
+	if (context.textWasEdited && activePopupID == inputID) 
+	{
 		showDropdown = true;
 	}
 
@@ -309,7 +418,7 @@ void getUserInput(std::vector<Object>& object)
 		showDropdown = false;
 		selectedIndex = -1;
 
-		processInput(inputBuffer, Context::function, object);
+		processInput(inputBuffer, Context::function, object, diag);
 
 		ImGui::SetKeyboardFocusHere(-1);
 	}
@@ -317,26 +426,57 @@ void getUserInput(std::vector<Object>& object)
 	ImGui::SeparatorText("Variables");
 }
 
-void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object)
+void pushErrorStyle(const std::optional<Context::RuntimeError>& diag)
+{
+	if (!diag) return;
+
+	ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(255, 0, 0, 255));
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(50, 0, 0, 255));
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
+}
+
+void popErrorStyle(const std::optional<Context::RuntimeError>& diag)
+{
+	if (!diag) return;
+
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip(diag->message.c_str());
+
+	ImGui::PopStyleVar(1);
+	ImGui::PopStyleColor(2);
+}
+
+void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag)
 {
 	std::string inputText{ inputBuffer };
 
-	tokenizer(inputText);
+	tokenizer(inputText, diag);
 
-	printTokens(Lexer::tokens);
+	if (diag)
+	{
+		Lexer::tokens.clear();
+		// do something
+		return;
+	}
 
-	parser(Lexer::tokens);
+	parser(Lexer::tokens, diag);
 
-	printNodes(Parser::nodes);
+	if (diag)
+	{
+		Lexer::tokens.clear();
+		Parser::nodes.clear();
+		// do something
+		return;
+	}
 
 	RuntimeValue evalObj{ evaluator(Parser::nodes, object) };
-
-	printRuntimeValue(evalObj);
 
 	if (std::holds_alternative<Context::RuntimeError>(evalObj))
 	{
 		Lexer::tokens.clear();
 		Parser::nodes.clear();
+
+		diag = std::get<Context::RuntimeError>(evalObj);
 
 		return;
 	}

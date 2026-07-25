@@ -30,36 +30,54 @@ void printNodes(const std::vector<Node>& nodes)
 	}
 }
 
-std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
+std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optional<Context::RuntimeError>& diag, size_t tp)
 {
+    using Context::RuntimeError;
+    using Context::ErrorSeverity;
+
     if (tokens.empty())
     {
+        diag = RuntimeError
+        {
+            "Parser Error at col 0: Input is empty.",
+            ErrorSeverity::Warning,
+            0,
+            0
+        };
         std::cerr << "PARSER::ERROR::TOKENS_EMPTY\n";
-        return {};
+        return std::nullopt;
     }
 
     static int parserCalls{ 0 };
 
     using Parser::nodes;
 
-    const Token& token{ tokens[tp] };
+    const Token* token{ &tokens[tp] };
 
-    if (token.type == Token::Equals)
+    if (token->type == Token::Equals)
     {
+        diag = RuntimeError
+        {
+            "Parser Error at col " + std::to_string(token->charPosition + 1) + ": Unexpected assignment operator(=).",
+            ErrorSeverity::Error,
+            token->charPosition,
+            1
+        };
+
         std::cerr << "ERROR::SYNTAX::UNEXPECTED_ASSIGNMENT_OPERATOR\n";
         Parser::nodes.clear();
-        return {};
+        return std::nullopt;
     }
 
-    if (token.type == Token::Number)
+    if (token->type == Token::Number)
     {
         int myIdx{ static_cast<int>(nodes.size()) };
-        nodes.push_back({ Node::Literal, token.lexeme });
+        nodes.push_back({ Node::Literal, token->lexeme, token->charPosition });
 
         return ParseResult{ tp + 1, myIdx };
     }
 
-    if (token.type == Token::Identifier)
+    if (token->type == Token::Identifier)
     {
         std::optional<std::string> targetName{ std::nullopt };
 
@@ -68,36 +86,52 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
             tokens[tp + 2].type == Token::Identifier &&
             tokens[tp + 3].type == Token::LParen)
         {
-            targetName = std::string(token.lexeme);
+            targetName = std::string(token->lexeme);
             for (const auto& func : Context::function)
             {
                 if (*targetName == func.name)
                 {
+                    diag = RuntimeError
+                    {
+                        "Parser Error at col " + std::to_string(token->charPosition + 1) + ": '" + *targetName + "' is a reserved keyword.",
+                        ErrorSeverity::Error,
+                        token->charPosition,
+                        targetName->length()
+                    };
+
                     std::cerr << "ERROR::SYNTAX<" << *targetName << ">::IS_RESERVED\n";
-                    return {};
+                    return std::nullopt;
                 }
             }
             tp += 2;
+            token = &tokens[tp];
         }
 
         if (tp + 1 < tokens.size() && tokens[tp + 1].type == Token::LParen)
         {
             if (tp + 2 < tokens.size() && tokens[tp + 2].type == Token::RParen)
             {
-                std::cerr << "ERROR::SYNTAX::" << token.lexeme << "_IS_EMPTY\n";
+                diag = RuntimeError
+                {
+                    "Parser Error at col " + std::to_string(token[tp + 1].charPosition + 1) + ": '" + std::string(token->lexeme) + "' function is empty.",
+                    ErrorSeverity::Error,
+                    tokens[tp + 1].charPosition,
+                    1
+                };
+                std::cerr << "ERROR::SYNTAX::" << token->lexeme << "_IS_EMPTY\n";
 
-                return {};
+                return std::nullopt;
             }
 
             int parentIdx{ static_cast<int>(nodes.size()) };
             if (targetName)
             {
-                nodes.push_back({ Node::Function, tokens[tp].lexeme, *targetName});
+                nodes.push_back({ Node::Function, token->lexeme, token->charPosition, *targetName});
             }
 
             else
             {
-                nodes.push_back({ Node::Function, token.lexeme });
+                nodes.push_back({ Node::Function, token->lexeme, token->charPosition });
             }
 
             tp += 2;
@@ -108,21 +142,29 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
             while (tp < tokens.size() && tokens[tp].type != Token::RParen)
             {
                 ++parserCalls;
-                std::optional<ParseResult> childResult{ parser(tokens, tp) };
+                std::optional<ParseResult> childResult{ parser(tokens, diag, tp) };
                 --parserCalls;
 
                 if (!childResult.has_value())
                 {
                     nodes.clear();
-                    return {};
+                    return std::nullopt;
                 }
 
                 if (childCount > 2)
                 {
+                    diag = RuntimeError
+                    {
+                        "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Argument overflow.", 
+                        ErrorSeverity::Error,
+                        tokens[tp].charPosition,
+                        tokens[tp].lexeme.length()
+                    };
+
                     std::cerr << "ERROR::SYNTAX::ARGUMENT_OVERFLOW\n";
                     nodes.clear();
 
-                    return {};
+                    return std::nullopt;
                 }
 
                 nodes[parentIdx].children[childCount++] = childResult->nodeIdx;
@@ -135,10 +177,18 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
                 {
                     if (tp + 1 < tokens.size() && tokens[tp + 1].type == Token::Comma)
                     {
+                        diag = RuntimeError
+                        {
+                            "Parser Error at col " + std::to_string(tokens[tp + 1].charPosition + 1) + ": Misplaced comma.",
+                            ErrorSeverity::Error,
+                            tokens[tp + 1].charPosition,
+                            1
+                        };
+
                         std::cerr << "ERROR::SYNTAX::MISPLACED_COMMA\n";
                         nodes.clear();
 
-                        return {};
+                        return std::nullopt;
                     }
 
                     tp++;
@@ -149,57 +199,89 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, size_t tp)
             {
                 if (tokens[tp - 1].type == Token::Comma)
                 {
+                    diag = RuntimeError
+                    {
+                        "Parser Error at col " + std::to_string(tokens[tp - 1].charPosition + 1) + ": Unexpected trailing comma.",
+                        ErrorSeverity::Error,
+                        tokens[tp - 1].charPosition,
+                        1
+                    };
+
                     std::cerr << "ERROR::SYNTAX::UNEXPECTED_TRAILING_COMMA\n";
                     nodes.clear();
 
-                    return {};
+                    return std::nullopt;
                 }
+
+                diag = RuntimeError
+                {
+                    "Parser Error at col " + std::to_string(tokens[tp - 1].charPosition + 1) + ": Unmatched parenthesis.",
+                    ErrorSeverity::Error,
+                    tokens[tp - 1].charPosition,
+                    tokens[tp - 1].lexeme.length()
+                };
 
                 std::cerr << "ERROR::SYNTAX::UNMATCHED_PARENTHESIS\n";
                 nodes.clear();
 
-                return {};
+                return std::nullopt;
             }
 
             tp++;
 
             if (parserCalls == 0 && tp < tokens.size())
             {
+                diag = RuntimeError
+                {
+                    "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected trailing tokens.",
+                    ErrorSeverity::Error,
+                    tokens[tp].charPosition,
+                    tokens[tp].lexeme.length()
+                };
+
                 std::cerr << "ERROR::SYNTAX::UNEXPECTED_TRAILING_TOKENS\n";
                 nodes.clear();
 
-                return {};
+                return std::nullopt;
             }
 
             else if (parserCalls > 0 && tp < tokens.size() && (tokens[tp].type == Token::Identifier || tokens[tp].type == Token::Number) && tokens[tp - 1].type != Token::Comma)
             {
+                diag = RuntimeError
+                {
+                    "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Missing comma.",
+                    ErrorSeverity::Error,
+                    tokens[tp].charPosition,
+                    tokens[tp].lexeme.length()
+                };
+
                 std::cerr << "ERROR::SYNTAX::MISSING_COMMA\n";
                 nodes.clear();
 
-                return {};
+                return std::nullopt;
             }
 
             return ParseResult{ tp, parentIdx };
         }
 
-        else if (tp + 1 < tokens.size() && tokens[tp + 1].type == Token::Equals)
-        {
-            int myIdx = static_cast<int>(nodes.size());
-            nodes.push_back({ Node::Variable, token.lexeme });
-
-            return ParseResult{ tp + 1, myIdx };
-        }
-
         else
         {
             int myIdx = static_cast<int>(nodes.size());
-            nodes.push_back({ Node::Variable, token.lexeme });
+            nodes.push_back({ Node::Variable, token->lexeme, token->charPosition });
 
             return ParseResult{ tp + 1, myIdx };
         }
     }
 
+    diag = RuntimeError
+    {
+        "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected token.",
+        ErrorSeverity::Error,
+        tokens[tp].charPosition,
+        tokens[tp].lexeme.length()
+    };
+
     std::cerr << "ERROR::SYNTAX::UNEXPECTED_TOKEN\n";
 
-    return {};
+    return std::nullopt;
 }

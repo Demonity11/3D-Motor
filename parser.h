@@ -20,6 +20,7 @@ struct Node
 
 	Node::Type type{};
 	std::string_view content{};
+	size_t charPosition{};
 	std::optional<std::string> targetName{};
 	std::array<int, 3> children{ -1, -1, -1 };
 };
@@ -35,7 +36,7 @@ namespace Parser
 	extern std::vector<Node> nodes;
 }
 
-auto parser(const std::vector<Token>& tokens, size_t tp = 0) -> std::optional<ParseResult>;
+auto parser(const std::vector<Token>& tokens, std::optional<Context::RuntimeError>& diag, size_t tp = 0) -> std::optional<ParseResult>;
 auto printNodes(const std::vector<Node>& nodes) -> void;
 
 #endif

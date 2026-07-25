@@ -41,12 +41,15 @@ bool isUpper(char ch) { return std::isupper(static_cast<unsigned char>(ch)); }
 
 bool isAlpha(char ch) { return std::isalpha(static_cast<unsigned char>(ch)); }
 
-void tokenizer(const std::string& input)
+void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& diag)
 {
 	using Lexer::tokens;
+	using Context::RuntimeError;
+	using Context::ErrorSeverity;
 
 	if (input.empty())
 	{
+		diag = { "Lexer Error at col 0: Input field is empty. Please, type a command.", ErrorSeverity::Warning, 0, 0 };
 		std::cerr << "LEXER::ERROR::INPUT_IS_EMPTY\n";
 		return;
 	}
@@ -64,35 +67,35 @@ void tokenizer(const std::string& input)
 
 		else if (c == '(')
 		{
-			tokens.push_back({ Token::LParen, std::string_view(&input[l], 1) });
+			tokens.push_back({ Token::LParen, std::string_view(&input[l], 1), l });
 		}
 
 		else if (c == ')')
 		{
-			tokens.push_back({ Token::RParen, std::string_view(&input[l], 1) });
+			tokens.push_back({ Token::RParen, std::string_view(&input[l], 1), l });
 		}
 
 		else if (c == ',')
 		{
-			tokens.push_back({ Token::Comma, std::string_view(&input[l], 1) });
+			tokens.push_back({ Token::Comma, std::string_view(&input[l], 1), l });
 		}
 
 		else if (c == '=')
 		{
-			tokens.push_back({ Token::Equals, std::string_view(&input[l], 1) });
+			tokens.push_back({ Token::Equals, std::string_view(&input[l], 1), l });
 		}
 
 		else if (isAlpha(c))
 		{
 			size_t start{ l };
-			while (isAlnum(input[l]))
+			while (l < input.size() && isAlnum(input[l]))
 			{
 				l++;
 			}
 
 			size_t end{ l - start };
 
-			tokens.push_back({ Token::Identifier, std::string_view(&input[start], end) });
+			tokens.push_back({ Token::Identifier, std::string_view(&input[start], end), start });
 			continue;
 		}
 
@@ -101,36 +104,45 @@ void tokenizer(const std::string& input)
 			int pointCount{ 0 };
 			size_t start{ l };
 
-			if (c == '-' || c == '.')
+			if (c == '-')
 			{
-				if (c == '.') ++pointCount;
-
-				if (l + 1 < input.size()) 
+				if (l + 1 >= input.size() || (!isDigit(input[l + 1]) && input[l + 1] != '.'))
 				{
-					if (isDigit(input[l + 1]))
+					diag = RuntimeError
 					{
-						++l;
-					}
-					else
+						"Lexer Error at col " + std::to_string(start + 1) + ": '-' must be followed by a digit.",
+						ErrorSeverity::Error,
+						start, 
+						1      
+					};
+					std::cerr << "LEXER::ERROR::INVALID_NEGATIVE_NUMBER_FORMAT\n";
+					tokens.clear();
+					return;
+				}
+				++l;
+			}
+
+			while (l < input.size() && (isDigit(input[l]) || input[l] == '.'))
+			{
+				c = input[l];
+				if (c == '.') 
+				{
+					++pointCount;
+					if (pointCount > 1)
 					{
-						std::cerr << "LEXER::ERROR<" << input[l + 1] << ">IS_NOT_A_NUMBER\n";
+						size_t errLength{ (l - start) + 1 };
+
+						diag = RuntimeError
+						{
+							"Lexer Error at col " + std::to_string(start + 1) + ": Numbers can only have one decimal point.",
+							ErrorSeverity::Error,
+							start,     
+							errLength
+						};
+						std::cerr << "LEXER::ERROR::NUMBER_HAS_MORE_THAN_ONE_FLOATING_POINT\n";
 						tokens.clear();
 						return;
 					}
-				}
-			}
-
-			while (isDigit(input[l]) || input[l] == '.')
-			{
-				c = input[l];
-
-				if (c == '.') pointCount++;
-				
-				if (pointCount > 1)
-				{
-					std::cerr << "LEXER::ERROR::NUMBER_HAS_MORE_THAN_ONE_FLOATING_POINT\n";
-					tokens.clear();
-					return;
 				}
 
 				l++;
@@ -138,12 +150,34 @@ void tokenizer(const std::string& input)
 
 			size_t end{ l - start };
 
-			tokens.push_back({ Token::Number, std::string_view(&input[start], end) });
+			if (end == 0 && l < input.size() && input[l] == '.')
+			{
+				diag = RuntimeError
+				{
+					"Lexer Error at col " + std::to_string(l + 1) + ": A decimal point must be preceded or followed by a number.",
+					ErrorSeverity::Error,
+					l,
+					1
+				};
+				std::cerr << "LEXER::ERROR::NUMBER_HAS_MORE_THAN_ONE_FLOATING_POINT\n";
+				tokens.clear();
+				return;
+			}
+
+			tokens.push_back({ Token::Number, std::string_view(&input[start], end), start });
 			continue;
 		}
 
 		else
 		{
+			diag = RuntimeError
+			{
+				"Lexer Error at col " + std::to_string(l + 1) + ": Character '" + c + "' is not valid.",
+				ErrorSeverity::Error,
+				l,
+				1
+			};
+
 			std::cerr << "LEXER::ERROR::CHARACTER<" << c << ">IS_NOT_VALID\n";
 			tokens.clear();
 			return;
