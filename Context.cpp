@@ -44,6 +44,8 @@ namespace Context
 		{"Intersect", Object::Line,    {Object::Plane,  Object::Plane}				  }
 	};
 
+	std::vector<Toast> toastNotifications{};
+
 	// store object symbols (default name)
 	std::map<Object::Type, char> objectSymbols
 	{

@@ -1,6 +1,8 @@
 #include "fileManager.h"
 #include <filesystem>
 #include "lexer.h"
+#include "Context.h"
+#include "imgui/imgui.h"
 
 std::vector<std::string> readFile(const std::string& filename)
 {
@@ -8,7 +10,16 @@ std::vector<std::string> readFile(const std::string& filename)
 
 	if (!file.is_open())
 	{
-		std::cerr << "ERROR::FAILED_TO_OPEN_FILE\n";
+        Toast toast
+        {
+            "Read File Error",
+            "Read File Error: Failed to open file '" + filename + "'.",
+            ImColor{ 255, 0, 0, 255 },
+            Context::defaultToastDuration,
+            Context::defaultToastDuration
+        };
+
+        Context::toastNotifications.push_back(toast);
 		return {};
 	}
 
@@ -18,11 +29,20 @@ std::vector<std::string> readFile(const std::string& filename)
 		std::string line;
 
 		while (std::getline(file, line))
-		{
-			std::cout << line << "\n";
+        {
 			output.push_back(line);
 		}
 
+        Toast toast
+        {
+            "Read File",
+            "Read File: File '" + filename + "' was read successfully.",
+            ImColor{ 0, 255, 0, 255 },
+            Context::defaultToastDuration,
+            Context::defaultToastDuration
+        };
+
+        Context::toastNotifications.push_back(toast);
 		return output;
 	}
 
@@ -40,19 +60,36 @@ int writeFile(const std::string& filename, const std::string& data)
 
     std::filesystem::path fullPath{ "save/" / p };
 
-    std::cout << "Writing: " << fullPath.string() << "\n";
-
     std::ofstream file{ fullPath, std::ios::out | std::ios::trunc };
 
     if (!file.is_open())
     {
-        std::cerr << "ERROR::FAILED_TO_OPEN <" << fullPath.string() << ">\n";
+        Toast toast
+        {
+            "Write File Error",
+            "Write File Error: Failed to open file '" + filename + "'.",
+            ImColor{ 255, 0, 0, 255 },
+            Context::defaultToastDuration,
+            Context::defaultToastDuration
+        };
+
+        Context::toastNotifications.push_back(toast);
         return -1;
     }
 
     file << data;
     file.close();
 
+    Toast toast
+    {
+        "Write File",
+        "Write File: File '" + filename + "' was written successfully.",
+        ImColor{ 0, 255, 0, 255 },
+        Context::defaultToastDuration,
+        Context::defaultToastDuration
+    };
+
+    Context::toastNotifications.push_back(toast);
     return 0;
 }
 
@@ -71,17 +108,44 @@ int removeFile(const std::string& filename)
     {
         if (std::filesystem::remove(fullPath)) 
         {
-            std::cout << "File deleted successfully.\n";
+            Toast toast
+            {
+                "Delete File",
+                "Delete File: File '" + filename + "' was deleted successfully.",
+                ImColor{ 0, 255, 0, 255 },
+                Context::defaultToastDuration,
+                Context::defaultToastDuration
+            };
+
+            Context::toastNotifications.push_back(toast);
         }
         else 
         {
-            std::cout << "File not found.\n";
+            Toast toast
+            {
+                "Delete File",
+                "Delete File Error: File '" + filename + "' was not found.",
+                ImColor{ 255, 0, 0, 255 },
+                Context::defaultToastDuration,
+                Context::defaultToastDuration
+            };
+
+            Context::toastNotifications.push_back(toast);
             return -1;
         }
     }
     catch (const std::filesystem::filesystem_error& e) 
     {
-        std::cerr << "ERROR::FILESYSTEM::" << e.what() << "\n";
+        Toast toast
+        {
+            "File System Error",
+            "File System Error: " + std::string(e.what()),
+            ImColor{ 0, 255, 0, 255 },
+            Context::defaultToastDuration,
+            Context::defaultToastDuration
+        };
+
+        Context::toastNotifications.push_back(toast);
         return -1;
     }
 
@@ -92,13 +156,32 @@ bool validateFileName(const std::string& filename)
 {
     if (filename.empty())
     {
-        std::cerr << "ERROR::FILE_NAME_IS_EMPTY\n";
+        Toast toast
+        {
+            "Filename Error",
+            "Filename Error: Filename is empty.",
+            ImColor{ 255, 0, 0, 255 },
+            Context::defaultToastDuration,
+            Context::defaultToastDuration
+        };
+
+        Context::toastNotifications.push_back(toast);
         return false;
     }
 
     if (!isAlpha(filename[0]))
     {
-        std::cerr << "ERROR::FILE_NAME_MUST_START_WITH_CHARACTER\n";
+        Toast toast
+        {
+            "Filename Error",
+            "Filename Error: Filename '" + filename + "' must start with an alpha character.",
+            ImColor{ 255, 0, 0, 255 },
+            Context::defaultToastDuration,
+            Context::defaultToastDuration
+        };
+
+        Context::toastNotifications.push_back(toast);
+
         return false;
     }
 
@@ -106,7 +189,16 @@ bool validateFileName(const std::string& filename)
     {
         if (!isAlnum(c))
         {
-            std::cerr << "ERROR::FILE_NAME_CONTAIN_CHARACTER_NOT_ALPHANUMERIC\n";
+            Toast toast
+            {
+                "Filename Error",
+                "Filename Error: Filename '" + filename + "' contain one or more characters that are not alphanumeric.",
+                ImColor{ 255, 0, 0, 255 },
+                Context::defaultToastDuration,
+                Context::defaultToastDuration
+            };
+
+            Context::toastNotifications.push_back(toast);
             return false;
         }
     }
@@ -116,7 +208,17 @@ bool validateFileName(const std::string& filename)
     {
         if (filenamePlusExtension == entry.path().filename().string())
         {
-            std::cerr << "ERROR::FILE_NAME<" << filename << ">::ALREADY_EXIST\n";
+            Toast toast
+            {
+                "Filename Error",
+                "Filename Error: Filename '" + filename + "' already exist.",
+                ImColor{ 255, 0, 0, 255 },
+                Context::defaultToastDuration,
+                Context::defaultToastDuration
+            };
+
+            Context::toastNotifications.push_back(toast);
+
             return false;
         }
     }

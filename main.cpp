@@ -100,8 +100,8 @@ int main()
 
 		ImGui::PushFont(Context::spaceFont, 16.0f);
 		ImGui::Begin("InputWindow", NULL, ImGuiWindowFlags_MenuBar);
-		menuBar();
 		getUserInput(Context::object);
+		menuBar();
 
 		int windowWidth{};
 		int windowHeight{};
@@ -177,8 +177,8 @@ int main()
 
 void processInput(GLFWwindow* window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
-		glfwSetWindowShouldClose(window, true);
+	//if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
+	//	glfwSetWindowShouldClose(window, true);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)

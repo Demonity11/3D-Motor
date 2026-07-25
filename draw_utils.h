@@ -34,6 +34,7 @@ auto getObjectInputFloats(Object& obj)																				   -> bool;
 auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag) -> void;
 auto showVariables(std::vector<Object>& object)																	       -> void;
 
+void addToastNotification(const Toast& toast);
 void pushErrorStyle(const std::optional<Context::RuntimeError>& diag);
 void popErrorStyle(const std::optional<Context::RuntimeError>& diag);
 

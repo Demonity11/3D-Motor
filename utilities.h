@@ -41,7 +41,7 @@ auto extractPoint(const RuntimeValue& val)			   -> std::optional<glm::vec3>;
 auto extractLine(const RuntimeValue& val)			   -> std::optional<Eval::Line>;
 
 void resetScene();
-void loadSceneFromFile(const std::string& filename);
+bool loadSceneFromFile(const std::string& filename);
 
 bool projectWorldToScreen
 (

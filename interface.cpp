@@ -139,7 +139,11 @@ void setupCustomTheme()
 void menuBar()
 {
 	static bool openNewFilePopup{ false };
+	static bool overwriteFilePopup{ false };
+	static bool deleteFilePopup{ false };
+
 	static std::string overwriteFilename{};
+	static std::string deleteFilename{};
 
 	if (ImGui::BeginMenuBar())
 	{
@@ -153,7 +157,15 @@ void menuBar()
 				}
 				else
 				{
-					std::cerr << "WARNING::SCENE_IS_ALREADY_EMPTY\n";
+					Toast toast
+					{
+						"Scene Not Cleared",
+						"Scene Not Cleared: The scene was not modified.",
+						ImColor{ 255, 255, 0, 255 },
+						Context::defaultToastDuration,
+						Context::defaultToastDuration
+					};
+					addToastNotification(toast);
 				}
 			}
 
@@ -164,7 +176,19 @@ void menuBar()
 				{
 					if (ImGui::MenuItem(entry.path().filename().string().c_str()))
 					{
-						loadSceneFromFile(entry.path().filename().string());
+						if (!loadSceneFromFile(entry.path().filename().string()))
+						{
+							Toast toast
+							{
+								"Scene Not Loaded",
+								"Scene Not Loaded: File '" + entry.path().filename().string() + "' was not loaded successfully.",
+								ImColor{ 255, 0, 0, 255 },
+								Context::defaultToastDuration,
+								Context::defaultToastDuration
+							};
+
+							addToastNotification(toast);
+						}
 					}
 				}
 
@@ -185,6 +209,7 @@ void menuBar()
 						if (ImGui::MenuItem(entry.path().filename().string().c_str()))
 						{
 							overwriteFilename = entry.path().filename().string();
+							overwriteFilePopup = true;
 						}
 					}
 
@@ -201,7 +226,8 @@ void menuBar()
 				{
 					if (ImGui::MenuItem(entry.path().filename().string().c_str()))
 					{
-						removeFile(entry.path().filename().string());
+						deleteFilename = entry.path().filename().string();
+						deleteFilePopup = true;
 					}
 				}
 
@@ -214,10 +240,62 @@ void menuBar()
 		ImGui::EndMenuBar();
 	}
 
-	if (overwriteFilename.size() > 0)
+	if (deleteFilePopup)
 	{
-		writeFile(overwriteFilename, Context::inputData);
-		overwriteFilename = "";
+		deleteFilePopup = false;
+		ImGui::OpenPopup("Delete File");
+	}
+
+	if (ImGui::BeginPopupModal("Delete File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Are you sure you want to delete '%s'?", deleteFilename.c_str());
+		ImGui::Separator();
+
+		if (ImGui::Button("Yes"))
+		{
+			removeFile(deleteFilename);
+			deleteFilename = "";
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("No"))
+		{
+			deleteFilename = "";
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+
+	if (overwriteFilePopup)
+	{
+		overwriteFilePopup = false;
+		ImGui::OpenPopup("Overwrite File");
+	}
+
+	if (ImGui::BeginPopupModal("Overwrite File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		ImGui::Text("Are you sure you want to overwrite '%s'?", overwriteFilename.c_str());
+		ImGui::Separator();
+
+		if (ImGui::Button("Yes"))
+		{
+			writeFile(overwriteFilename, Context::inputData);
+			overwriteFilename = "";
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("No"))
+		{
+			overwriteFilename = "";
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
 	}
 
 	if (openNewFilePopup)
@@ -239,7 +317,18 @@ void menuBar()
 		if ((ImGui::Button("Save") || enterPressed) && filename.size() > 0 && Context::inputData.size() > 0)
 		{
 			if (validateFileName(filename))
+			{
 				writeFile(filename, Context::inputData);
+				Toast toast
+				{
+					"File Saved",
+					"File Saved: '" + filename + "' was saved successfully.",
+					ImColor{ 0, 255, 0, 255 },
+					Context::defaultToastDuration,
+					Context::defaultToastDuration
+				};
+				addToastNotification(toast);
+			}
 
 			inputBuf[0] = '\0'; 
 			ImGui::CloseCurrentPopup();
@@ -260,6 +349,9 @@ void menuBar()
 // captures user input through Dear ImGui interface
 void getUserInput(std::vector<Object>& object)
 {
+	const ImVec2 inputWindowPos{ ImGui::GetCursorScreenPos() };
+	const ImVec2 inputWindowSize{ ImGui::GetContentRegionAvail() };
+
 	static std::optional<Context::RuntimeError> diag{ std::nullopt };
 
 	constexpr std::size_t bufferSize{ 128 };
@@ -423,15 +515,84 @@ void getUserInput(std::vector<Object>& object)
 		ImGui::SetKeyboardFocusHere(-1);
 	}
 
+	using Context::toastNotifications;
+
+	if (!toastNotifications.empty())
+	{
+		ImGuiWindowFlags toastFlags
+		{
+			ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_AlwaysAutoResize |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoNav |
+			ImGuiWindowFlags_NoMove
+		};
+
+		constexpr float padding{ 10.0f };
+
+		float xPos{ inputWindowPos.x };
+		float yPos{ inputWindowPos.y + inputWindowSize.y + 15.0f };
+
+		float deltaTime{ ImGui::GetIO().DeltaTime };
+
+		for (int i{ static_cast<int>(toastNotifications.size()) - 1 }; i >= 0; --i)
+		{
+			Toast& toast{ toastNotifications[static_cast<size_t>(i)] };
+
+			toast.timeRemaining -= deltaTime;
+			if (toast.timeRemaining <= 0.0f)
+			{
+				toastNotifications.erase(toastNotifications.begin() + i);
+				continue;
+			}
+
+			float alpha{ 1.0f };
+			if (toast.timeRemaining <= 0.5f)
+			{
+				alpha = toast.timeRemaining / 0.5f;
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+
+			ImGui::SetNextWindowPos(ImVec2(xPos, yPos), ImGuiCond_Always);
+
+			std::string windowID{ toast.title + "##toast_" + std::to_string(i) };
+
+			if (ImGui::Begin(windowID.c_str(), NULL, toastFlags))
+			{
+				ImGui::TextColored(toast.severity, toast.message.c_str());
+
+				yPos += ImGui::GetWindowHeight() + padding;
+			}
+			ImGui::End();
+
+			ImGui::PopStyleVar();
+		}
+	}
+
 	ImGui::SeparatorText("Variables");
+}
+
+void addToastNotification(const Toast& toast)
+{
+	Context::toastNotifications.push_back(toast);
 }
 
 void pushErrorStyle(const std::optional<Context::RuntimeError>& diag)
 {
 	if (!diag) return;
 
-	ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(255, 0, 0, 255));
-	ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(50, 0, 0, 255));
+	if (diag->severity == Context::Error)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(255, 0, 0, 255));
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(50, 0, 0, 255));
+	}
+	else
+	{
+		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(255, 255, 0, 255));
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(50, 50, 0, 255));
+	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
 }
@@ -455,7 +616,6 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 	if (diag)
 	{
 		Lexer::tokens.clear();
-		// do something
 		return;
 	}
 
@@ -465,7 +625,6 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 	{
 		Lexer::tokens.clear();
 		Parser::nodes.clear();
-		// do something
 		return;
 	}
 
@@ -1004,11 +1163,13 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 	{
 		float r{}, g{}, b{};
 
-		do {
+		do 
+		{
 			r = static_cast<float>(Random::get(0, 10)) * 0.1f;
 			g = static_cast<float>(Random::get(0, 10)) * 0.1f;
 			b = static_cast<float>(Random::get(0, 10)) * 0.1f;
-		} while (r < 0.2f && g > 0.4f && b > 0.7f);
+		} 
+		while (r < 0.2f && g > 0.4f && b > 0.7f);
 
 		finalColor = { r, g, b, 0.2f };
 	}
@@ -1027,9 +1188,4 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 	Context::symbolTable[objName] = objIdx;
 
 	updateBufferData(Context::vertexData);
-
-	for (const auto& obj : Context::object)
-	{
-		obj.printObject();
-	}
 }

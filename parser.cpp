@@ -39,12 +39,12 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
     {
         diag = RuntimeError
         {
-            "Parser Error at col 0: Input is empty.",
+            "Parser Warning at col 0: Input is empty.",
             ErrorSeverity::Warning,
             0,
             0
         };
-        std::cerr << "PARSER::ERROR::TOKENS_EMPTY\n";
+  
         return std::nullopt;
     }
 
@@ -64,7 +64,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
             1
         };
 
-        std::cerr << "ERROR::SYNTAX::UNEXPECTED_ASSIGNMENT_OPERATOR\n";
         Parser::nodes.clear();
         return std::nullopt;
     }
@@ -99,7 +98,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                         targetName->length()
                     };
 
-                    std::cerr << "ERROR::SYNTAX<" << *targetName << ">::IS_RESERVED\n";
                     return std::nullopt;
                 }
             }
@@ -118,7 +116,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                     tokens[tp + 1].charPosition,
                     1
                 };
-                std::cerr << "ERROR::SYNTAX::" << token->lexeme << "_IS_EMPTY\n";
 
                 return std::nullopt;
             }
@@ -161,7 +158,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                         tokens[tp].lexeme.length()
                     };
 
-                    std::cerr << "ERROR::SYNTAX::ARGUMENT_OVERFLOW\n";
                     nodes.clear();
 
                     return std::nullopt;
@@ -185,7 +181,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                             1
                         };
 
-                        std::cerr << "ERROR::SYNTAX::MISPLACED_COMMA\n";
                         nodes.clear();
 
                         return std::nullopt;
@@ -207,7 +202,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                         1
                     };
 
-                    std::cerr << "ERROR::SYNTAX::UNEXPECTED_TRAILING_COMMA\n";
                     nodes.clear();
 
                     return std::nullopt;
@@ -221,7 +215,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                     tokens[tp - 1].lexeme.length()
                 };
 
-                std::cerr << "ERROR::SYNTAX::UNMATCHED_PARENTHESIS\n";
                 nodes.clear();
 
                 return std::nullopt;
@@ -239,7 +232,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                     tokens[tp].lexeme.length()
                 };
 
-                std::cerr << "ERROR::SYNTAX::UNEXPECTED_TRAILING_TOKENS\n";
                 nodes.clear();
 
                 return std::nullopt;
@@ -255,7 +247,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                     tokens[tp].lexeme.length()
                 };
 
-                std::cerr << "ERROR::SYNTAX::MISSING_COMMA\n";
                 nodes.clear();
 
                 return std::nullopt;
@@ -280,8 +271,6 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
         tokens[tp].charPosition,
         tokens[tp].lexeme.length()
     };
-
-    std::cerr << "ERROR::SYNTAX::UNEXPECTED_TOKEN\n";
 
     return std::nullopt;
 }

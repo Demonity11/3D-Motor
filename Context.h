@@ -6,6 +6,7 @@
 #include <map>
 #include <glm/glm.hpp>
 #include <glad/glad.h>
+#include "imgui/imgui.h"
 #include "Object.h"
 
 struct ImFont;
@@ -15,6 +16,16 @@ struct FunctionArgs
 	std::string name{};
 	Object::Type type{};
 	std::vector<Object::Type> expectedArgs{};
+};
+
+struct Toast
+{
+	std::string title{};
+	std::string message{};
+	ImColor severity{};
+
+	float duration{};
+	float timeRemaining{};
 };
 
 namespace Context
@@ -53,6 +64,8 @@ namespace Context
 	// key: object name - value: object index
 	extern std::map<std::string, size_t> symbolTable;
 
+	extern std::vector<Toast> toastNotifications;
+
 	// parent ID when the object has literal components
 	inline constexpr int componentLiteral{ -2 };
 
@@ -64,6 +77,7 @@ namespace Context
 	inline int selectedObjID{ -1 };
 
 	inline int globalObjectIDCounter{ 0 };
+	inline float defaultToastDuration{ 5.0f };
 
 	extern std::string inputData;
 }

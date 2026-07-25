@@ -13,7 +13,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
     {
         return RuntimeError
         { 
-            "Semantics Error at col 0: Nodes vector is empty.",
+            "Semantics Warning at col 0: Nodes vector is empty.",
             ErrorSeverity::Warning,
             0,
             0

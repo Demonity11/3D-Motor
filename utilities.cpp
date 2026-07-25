@@ -1462,6 +1462,8 @@ void resetScene()
 {
 	using namespace Context;
 
+	const int objDeleteCount{ static_cast<int>(object.size()) - 8 };
+
 	vertexData.clear();
 	symbolTable.clear();
 	object.clear();
@@ -1481,16 +1483,30 @@ void resetScene()
 					};
 
 	getEnvironmentVertices(vertexData, true);
+
+	Toast toast
+	{
+		"Scene Clear",
+		"Scene Cleared: " + std::to_string(objDeleteCount) + " objects deleted.",
+		ImColor{ 255, 255, 0, 255 },
+		defaultToastDuration,
+		defaultToastDuration
+	};
+	addToastNotification(toast);
 }
 
-void loadSceneFromFile(const std::string& filename)
+bool loadSceneFromFile(const std::string& filename)
 {
-	resetScene();
+	if (Context::globalObjectIDCounter > 0)
+		resetScene();
 
 	const std::vector<std::string>& inputArray{ readFile(filename) };
 
+	int objCount{};
 	for (const auto& input : inputArray)
 	{
+		++objCount;
+
 		std::optional<Context::RuntimeError> diag{ std::nullopt };
 
 		tokenizer(input, diag);
@@ -1498,13 +1514,9 @@ void loadSceneFromFile(const std::string& filename)
 		{
 			Lexer::tokens.clear();
 
-			// do something
-
 			resetScene();
-			return;
+			return false;
 		}
-
-		printTokens(Lexer::tokens);
 
 		parser(Lexer::tokens, diag);
 		if (diag)
@@ -1512,27 +1524,19 @@ void loadSceneFromFile(const std::string& filename)
 			Lexer::tokens.clear();
 			Parser::nodes.clear();
 
-			// do something
-
 			resetScene();
-			return;
+			return false;
 		}
 
-		printNodes(Parser::nodes);
-
 		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
-		printRuntimeValue(evalObj);
 
 		if (std::holds_alternative<Context::RuntimeError>(evalObj))
 		{
 			Lexer::tokens.clear();
 			Parser::nodes.clear();
 
-			// do something
-
-			std::cerr << "ERROR::FAILED_TO_LOAD_SCENE\n";
 			resetScene();
-			return;
+			return false;
 		}
 
 		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
@@ -1548,5 +1552,15 @@ void loadSceneFromFile(const std::string& filename)
 		Parser::nodes.clear();
 	}
 
+	Toast toast
+	{
+		"Object Load",
+		"Object Load: " + std::to_string(objCount) + " objects loaded.",
+		ImColor{ 255, 0, 0, 255 },
+		Context::defaultToastDuration,
+		Context::defaultToastDuration
+	};
+
 	updateBufferData(Context::vertexData);
+	return true;
 }

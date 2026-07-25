@@ -49,8 +49,7 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 
 	if (input.empty())
 	{
-		diag = { "Lexer Error at col 0: Input field is empty. Please, type a command.", ErrorSeverity::Warning, 0, 0 };
-		std::cerr << "LEXER::ERROR::INPUT_IS_EMPTY\n";
+		diag = { "Lexer Warning at col 0: Input field is empty. Please, type a command.", ErrorSeverity::Warning, 0, 0 };
 		return;
 	}
 
@@ -115,7 +114,7 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 						start, 
 						1      
 					};
-					std::cerr << "LEXER::ERROR::INVALID_NEGATIVE_NUMBER_FORMAT\n";
+
 					tokens.clear();
 					return;
 				}
@@ -139,7 +138,7 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 							start,     
 							errLength
 						};
-						std::cerr << "LEXER::ERROR::NUMBER_HAS_MORE_THAN_ONE_FLOATING_POINT\n";
+
 						tokens.clear();
 						return;
 					}
@@ -159,7 +158,7 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 					l,
 					1
 				};
-				std::cerr << "LEXER::ERROR::NUMBER_HAS_MORE_THAN_ONE_FLOATING_POINT\n";
+
 				tokens.clear();
 				return;
 			}
@@ -178,7 +177,6 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 				1
 			};
 
-			std::cerr << "LEXER::ERROR::CHARACTER<" << c << ">IS_NOT_VALID\n";
 			tokens.clear();
 			return;
 		}
