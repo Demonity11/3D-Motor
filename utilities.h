@@ -25,8 +25,10 @@ auto compareRuntimeValue(Object::Type type, const RuntimeValue& components1, con
 auto searchObjectByID(int id, const std::vector<Object>& objectRef)																	 -> int;
 auto searchObjectIndexByName(const std::string& objName, const std::vector<Object>& object)											 -> int;
 auto rebuildObjectFromParents(Object& obj, const std::vector<Object>& object)														 -> bool;
+void rebuildScene(std::vector<Object>& object, std::vector<float>& vertexData);
 auto updateObject(int objIndex, const Object& newObj)																				 -> void;
-auto deleteObject(int objIndex, std::vector<Object>& object, std::vector<float>& vertexData)										 -> void;
+void purgeObjectAndDependents(int targetID, std::vector<Object>& object);
+void deleteObjectByID(int targetID, std::vector<Object>& object, std::vector<float>& vertexData);
 auto extractPName(const Object& obj)																								 -> std::string;
 auto testInput(const std::string& input)																							 -> std::vector<std::string>;
 
@@ -40,8 +42,11 @@ auto duduceRuntimeValueType(const RuntimeValue& value) -> Object::Type;
 auto extractPoint(const RuntimeValue& val)			   -> std::optional<glm::vec3>;
 auto extractLine(const RuntimeValue& val)			   -> std::optional<Eval::Line>;
 
+void softResetScene();
 void resetScene();
 bool loadSceneFromFile(const std::string& filename);
+
+bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag);
 
 void updateInputData(const Object& updatedObj);
 

@@ -228,11 +228,6 @@ RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args)
         return point;
     }
 
-    //else if (args.size() == 1 && std::holds_alternative<glm::vec3>(args[0]))
-    //{
-    //    return std::get<glm::vec3>(args[0]);
-    //}
-
     return Context::RuntimeError{ "SEMANTICS::ERROR::POINT::INVALID_ARGUMENTS_OVERLOAD\n" };
 }
 

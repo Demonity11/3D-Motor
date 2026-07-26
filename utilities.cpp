@@ -116,81 +116,55 @@ size_t createObject(Object obj, int vCount)
 	return Context::object.size() - 1;
 }
 
-// delete a Object with a given index from Object's vector
-void deleteObject(int objIndex, std::vector<Object>& object, std::vector<float>& vertexData)
+void purgeObjectAndDependents(int targetID, std::vector<Object>& object)
 {
-	int parentID{ object[objIndex].getID() };
-	std::vector<int> childIndex{};
+	std::vector<int> idsToDelete{ targetID };
 
-	for (int i{ 0 }; i < static_cast<int>(object.size()); ++i)
+	size_t head{ 0 };
+	while (head < idsToDelete.size())
 	{
-		const Object& obj{ object[i] };
-		bool alreadyMarked{ false };
+		int currentParentID{ idsToDelete[head++] };
 
-		for (int j{ 0 }; j < obj.getParentCount(); ++j)
+		for (const auto& obj : object)
 		{
-			if (alreadyMarked) break;
+			if (obj.getParentCount() == 0) continue;
 
-			int pID{ obj.getParentIDs()[j] };
-			if (pID == parentID)
+			for (int j{ 0 }; j < obj.getParentCount(); ++j)
 			{
-				childIndex.push_back(i);
-				alreadyMarked = true;
-				continue;
-			}
-
-			if (pID == Context::componentLiteral || pID == -1) continue;
-
-			int pIndex{ searchObjectByID(pID, object) };
-
-			if (pIndex == -1) continue;
-
-			for (int k{ 0 }; k < object[pIndex].getParentCount(); ++k)
-			{
-				if (object[pIndex].getParentIDs()[k] == parentID)
+				int pID{ obj.getParentIDs()[j] };
+				if (pID == currentParentID)
 				{
-					childIndex.push_back(i);
-					alreadyMarked = true;
+					if (std::find(idsToDelete.begin(), idsToDelete.end(), obj.getID()) == idsToDelete.end())
+					{
+						idsToDelete.push_back(obj.getID());
+					}
 					break;
 				}
 			}
 		}
 	}
 
-	childIndex.push_back(objIndex);
-
-	std::sort(childIndex.begin(), childIndex.end(),
-		[](const int a, const int b)
+	for (int id : idsToDelete)
+	{
+		int idx{ searchObjectByID(id, object) };
+		if (idx != -1)
 		{
-			return a > b;
+			Context::symbolTable.erase(object[idx].getName());
+			object.erase(object.begin() + idx);
 		}
-	);
-
-	for (auto i : childIndex)
-	{
-		const Object& obj{ object[i] };
-		Context::symbolTable.erase(obj.getName());
-
-		object.erase(object.begin() + i);
 	}
+}
 
-	vertexData.clear();
+void deleteObjectByID(int targetID, std::vector<Object>& object, std::vector<float>& vertexData)
+{
+	const std::string& objName{ object[searchObjectByID(targetID, object)].getName() };
 
-	getEnvironmentVertices(vertexData);
+	purgeObjectAndDependents(targetID, object);
 
-	for (size_t idx{ 8 }; idx < object.size(); ++idx)
-	{
-		Object& obj{ object[idx] };
-		Context::symbolTable[obj.getName()] = idx;
+	softResetScene();
+	rebuildScene(object, vertexData);
 
-		int newOffset = static_cast<int>(vertexData.size()) / 7;
-		obj.setOffset(newOffset);
-
-		//draw(obj.getType(), obj.getComponents(), obj.getColor(), obj.getParentIDs(), obj.getpCompIndex(), true);
-		generateObjectVertices(obj, object, vertexData);
-	}
-
-	updateBufferData(vertexData);
+	Context::inputData += "Delete(" + objName + ")\n";
 }
 
 // function to update objects
@@ -200,7 +174,7 @@ void updateObject(int objIndex, const Object& newObj)
 	using Context::vertexData;
 
 	object[objIndex] = newObj;
-	std::vector<int> toBeDeleted{};
+	std::vector<int> idsToDelete{};
 
 	for (size_t idx{ 8 }; idx < object.size(); ++idx)
 	{
@@ -208,13 +182,13 @@ void updateObject(int objIndex, const Object& newObj)
 
 		if (obj.getParentCount() > 0)
 		{
-			if (!obj.isMutable() && obj.getType() != Object::Vector) 
+			if (!obj.isMutable() && obj.getType() != Object::Vector)
 			{
-				bool isIntersectionALive{ recalculateIntersect(obj, object) };
+				bool isIntersectionAlive{ recalculateIntersect(obj, object) };
 
-				if (!isIntersectionALive) 
+				if (!isIntersectionAlive)
 				{
-					toBeDeleted.push_back(static_cast<int>(idx));
+					idsToDelete.push_back(obj.getID());
 				}
 
 				continue;
@@ -228,28 +202,18 @@ void updateObject(int objIndex, const Object& newObj)
 		}
 	}
 
-	if (!toBeDeleted.empty())
+	for (int id : idsToDelete)
 	{
-		std::sort(toBeDeleted.begin(), toBeDeleted.end(),
-			[](const int a, const int b)
-			{
-				return a > b;
-			}
-		);
-
-		for (int index : toBeDeleted)
-		{
-			const Object& obj{ object[index] };
-			Context::symbolTable.erase(obj.getName());
-
-			deleteObject(index, object, vertexData);
-		}
+		purgeObjectAndDependents(id, object);
 	}
 
-	vertexData.clear();
+	softResetScene();
+	rebuildScene(object, vertexData);
+	updateInputData(newObj);
+}
 
-	getEnvironmentVertices(vertexData);
-
+void rebuildScene(std::vector<Object>& object, std::vector<float>& vertexData)
+{
 	for (size_t idx{ 8 }; idx < object.size(); ++idx)
 	{
 		Object& obj = object[idx];
@@ -259,19 +223,17 @@ void updateObject(int objIndex, const Object& newObj)
 
 		int newOffset = static_cast<int>(vertexData.size()) / 7;
 		obj.setOffset(newOffset);
-		
+
 		generateObjectVertices(obj, object, vertexData);
 	}
-
-	updateInputData(newObj);
 
 	updateBufferData(vertexData);
 }
 
-void updateInputData(const Object& updatedObj)
+void updateInputData(const Object& obj)
 {
-	const RuntimeValue& comp{ updatedObj.getComponents() };
-	const std::array<int, 3> pIDs{ updatedObj.getParentIDs() };
+	const RuntimeValue& comp{ obj.getComponents() };
+	const std::array<int, 3> pIDs{ obj.getParentIDs() };
 
 	using Context::inputData;
 	using Context::object;
@@ -292,11 +254,20 @@ void updateInputData(const Object& updatedObj)
 		[](float f) {},
 		[&](const glm::vec3& p)
 		{
-			ss << updatedObj.getName() << " = Point(" << p << ")";
+			ss << obj.getName() << " = Point(" << p << ")";
 		},
 		[&](const Eval::Vector& vector)
 		{
-			ss << updatedObj.getName() << " = Vector(";
+			ss << obj.getName() << " = Vector(";
+
+			if (vector.pTypes[0] == Object::Null && vector.pTypes[1] == Object::Point)
+			{
+				if (pIDs[0] >= 0)
+					ss << getObjectNameByID(pIDs[0]) << ")";
+				else
+					ss << "Point(" << vector.head << "))";
+				return;
+			}
 
 			if (pIDs[0] >= 0)
 				ss << getObjectNameByID(pIDs[0]) << ", ";
@@ -310,7 +281,7 @@ void updateInputData(const Object& updatedObj)
 		},
 		[&](const Eval::Segment& segment)
 		{
-			ss << updatedObj.getName() << " = Segment(";
+			ss << obj.getName() << " = Segment(";
 
 			if (pIDs[0] >= 0)
 				ss << getObjectNameByID(pIDs[0]) << ", ";
@@ -324,7 +295,7 @@ void updateInputData(const Object& updatedObj)
 		},
 		[&](const Eval::Line& line)
 		{
-			ss << updatedObj.getName() << " = Line(";
+			ss << obj.getName() << " = Line(";
 
 			if (pIDs[0] >= 0)
 				ss << getObjectNameByID(pIDs[0]) << ", ";
@@ -345,7 +316,7 @@ void updateInputData(const Object& updatedObj)
 		},
 		[&](const Eval::Plane& plane)
 		{
-			ss << updatedObj.getName() << " = Plane(";
+			ss << obj.getName() << " = Plane(";
 
 			if (pIDs[0] >= 0)
 				ss << getObjectNameByID(pIDs[0]) << ", ";
@@ -1577,6 +1548,26 @@ std::optional<Eval::Line> extractLine(const RuntimeValue& val)
 	return std::nullopt;
 }
 
+void softResetScene()
+{
+	using namespace Context;
+
+	if (object.size() < 8)
+	{
+		return;
+	}
+
+	size_t floatOffset{ static_cast<size_t>(object[7].getOffset() * 7 + object[7].getVertexCount() * 7) };
+
+	if (floatOffset < vertexData.size())
+	{
+		vertexData.erase(vertexData.begin() + floatOffset, vertexData.end());
+	}
+
+	prevSelectedObjID = -1;
+	selectedObjID = -1;
+}
+
 void resetScene()
 {
 	using namespace Context;
@@ -1620,6 +1611,57 @@ void resetScene()
 	updateBufferData(vertexData);
 }
 
+bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
+{
+	using namespace Parser;
+	using Context::object;
+
+	if (nodes[0].content == "Delete" && nodes.size() > 1)
+	{
+		printNodes(nodes);
+
+		if (nodes.size() > 2)
+		{
+			diag = Context::RuntimeError
+			{
+				"Semantics Error at col " + std::to_string(nodes[1].charPosition + 1) + ": Delete function only take 1 argument.",
+				Context::ErrorSeverity::Error,
+				nodes[1].charPosition,
+				1
+			};
+
+			Lexer::tokens.clear();
+			nodes.clear();
+			return false;
+		}
+
+		int idx{ searchObjectIndexByName(std::string(nodes[1].content), object) };
+
+		if (idx >= 0)
+		{
+			deleteObjectByID(object[idx].getID(), Context::object, Context::vertexData);
+
+			return true;
+		}
+		else
+		{
+			diag = Context::RuntimeError
+			{
+				"Semantics Error at col " + std::to_string(nodes[1].charPosition + 1) + ": Variable '" + std::string(nodes[1].content) + "' not found.",
+				Context::ErrorSeverity::Error,
+				nodes[1].charPosition,
+				nodes[1].content.length()
+			};
+
+			Lexer::tokens.clear();
+			nodes.clear();
+			return false;
+		}
+	}
+
+	return false;
+}
+
 bool loadSceneFromFile(const std::string& filename)
 {
 	if (Context::globalObjectIDCounter > 8)
@@ -1651,6 +1693,11 @@ bool loadSceneFromFile(const std::string& filename)
 
 			resetScene();
 			return false;
+		}
+
+		if (evaluateDeleteFunc(diag))
+		{
+			continue;
 		}
 
 		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };

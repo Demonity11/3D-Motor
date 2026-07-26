@@ -22,6 +22,7 @@ public:
 	static constexpr Type Segment = ObjectType::Segment;
 	static constexpr Type Line = ObjectType::Line;
 	static constexpr Type Plane = ObjectType::Plane;
+	static constexpr Type Variable = ObjectType::Variable;
 
 	Object(std::string name, Type type, unsigned int primitive)
 		: m_name{ name }

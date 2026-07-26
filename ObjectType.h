@@ -8,7 +8,8 @@ enum class ObjectType
 	Vector,
 	Segment,
 	Line,
-	Plane
+	Plane,
+	Variable
 };
 
 #endif

@@ -690,6 +690,12 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 		return;
 	}
 
+	if (evaluateDeleteFunc(diag))
+	{
+		inputBuffer[0] = '\0';
+		return;
+	}
+
 	RuntimeValue evalObj{ evaluator(Parser::nodes, object) };
 
 	if (std::holds_alternative<Context::RuntimeError>(evalObj))
@@ -703,8 +709,6 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 	}
 
 	extractAndRegisterObject(evalObj, object, Parser::nodes, Parser::nodes[0].targetName);
-
-	Context::inputData += inputText + "\n";
 	
 	Lexer::tokens.clear();
 	Parser::nodes.clear();
@@ -793,7 +797,8 @@ void showVariables(std::vector<Object>& object)
 
 			if (ImGui::Button(deleteText.c_str()))
 			{
-				deleteObject(static_cast<int>(i), object, Context::vertexData);
+				deleteObjectByID(currentID, object, Context::vertexData);
+				rebuildScene(object, Context::vertexData);
 				Context::prevSelectedObjID = -1;
 				Context::selectedObjID = -1;
 				break;
@@ -1202,6 +1207,13 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 		return;
 	}
 
+	int pCount{ 0 };
+	for (size_t i{ 0 }; i < std::size(pIDs); ++i)
+	{
+		if (pIDs[i] != -1 && pIDs[i] != Context::componentLiteral)
+			++pCount;
+	}
+
 	std::string objName{};
 
 	if (targetName) 
@@ -1214,6 +1226,8 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 			{
 				Object newObj{ object[idx] };
 				newObj.setComponents(evalObj);
+				newObj.setParentIDs(pIDs);
+				newObj.setParentCount(pCount);
 
 				updateObject(idx, newObj);
 				return;
@@ -1246,6 +1260,8 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 			{
 				Object newObj{ object[idx] };
 				newObj.setComponents(evalObj);
+				newObj.setParentIDs(pIDs);
+				newObj.setParentCount(pCount);
 
 				updateObject(idx, newObj);
 				return;
@@ -1260,13 +1276,6 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	unsigned int primitive{ Context::primitives[type] };
 	glm::vec4 color{ Context::defaultColors[type] };
-
-	int pCount{ 0 };
-	for (size_t i{ 0 }; i < std::size(pIDs); ++i)
-	{
-		if (pIDs[i] != -1 && pIDs[i] != Context::componentLiteral)
-			++pCount;
-	}
 
 	glm::vec4 finalColor{ color };
 
@@ -1300,4 +1309,6 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 	Context::symbolTable[objName] = objIdx;
 
 	updateBufferData(Context::vertexData);
+
+	updateInputData(object[object.size() - 1]);
 }

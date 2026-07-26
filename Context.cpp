@@ -41,7 +41,8 @@ namespace Context
 		{"Intersect", Object::Point,   {Object::Line,   Object::Plane}			      },
 		{"Intersect", Object::Point,   {Object::Plane,  Object::Line}			      },
 		{"Intersect", Object::Point,   {Object::Line,   Object::Line}			      },
-		{"Intersect", Object::Line,    {Object::Plane,  Object::Plane}				  }
+		{"Intersect", Object::Line,    {Object::Plane,  Object::Plane}				  },
+		{"Delete",    Object::Null,    {Object::Variable}							  }
 	};
 
 	std::vector<Toast> toastNotifications{};
