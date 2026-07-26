@@ -10,16 +10,6 @@ std::vector<std::string> readFile(const std::string& filename)
 
 	if (!file.is_open())
 	{
-        Toast toast
-        {
-            "Read File Error",
-            "Read File Error: Failed to open file '" + filename + "'.",
-            ImColor{ 255, 0, 0, 255 },
-            Context::defaultToastDuration,
-            Context::defaultToastDuration
-        };
-
-        Context::toastNotifications.push_back(toast);
 		return {};
 	}
 
@@ -33,16 +23,6 @@ std::vector<std::string> readFile(const std::string& filename)
 			output.push_back(line);
 		}
 
-        Toast toast
-        {
-            "Read File",
-            "Read File: File '" + filename + "' was read successfully.",
-            ImColor{ 0, 255, 0, 255 },
-            Context::defaultToastDuration,
-            Context::defaultToastDuration
-        };
-
-        Context::toastNotifications.push_back(toast);
 		return output;
 	}
 
@@ -64,32 +44,12 @@ int writeFile(const std::string& filename, const std::string& data)
 
     if (!file.is_open())
     {
-        Toast toast
-        {
-            "Write File Error",
-            "Write File Error: Failed to open file '" + filename + "'.",
-            ImColor{ 255, 0, 0, 255 },
-            Context::defaultToastDuration,
-            Context::defaultToastDuration
-        };
-
-        Context::toastNotifications.push_back(toast);
         return -1;
     }
 
     file << data;
     file.close();
 
-    Toast toast
-    {
-        "Write File",
-        "Write File: File '" + filename + "' was written successfully.",
-        ImColor{ 0, 255, 0, 255 },
-        Context::defaultToastDuration,
-        Context::defaultToastDuration
-    };
-
-    Context::toastNotifications.push_back(toast);
     return 0;
 }
 
@@ -108,29 +68,10 @@ int removeFile(const std::string& filename)
     {
         if (std::filesystem::remove(fullPath)) 
         {
-            Toast toast
-            {
-                "Delete File",
-                "Delete File: File '" + filename + "' was deleted successfully.",
-                ImColor{ 0, 255, 0, 255 },
-                Context::defaultToastDuration,
-                Context::defaultToastDuration
-            };
-
-            Context::toastNotifications.push_back(toast);
+            return 0;
         }
         else 
         {
-            Toast toast
-            {
-                "Delete File",
-                "Delete File Error: File '" + filename + "' was not found.",
-                ImColor{ 255, 0, 0, 255 },
-                Context::defaultToastDuration,
-                Context::defaultToastDuration
-            };
-
-            Context::toastNotifications.push_back(toast);
             return -1;
         }
     }
@@ -140,7 +81,7 @@ int removeFile(const std::string& filename)
         {
             "File System Error",
             "File System Error: " + std::string(e.what()),
-            ImColor{ 0, 255, 0, 255 },
+            ImColor{ 255, 0, 0, 255 },
             Context::defaultToastDuration,
             Context::defaultToastDuration
         };

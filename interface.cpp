@@ -153,15 +153,25 @@ void menuBar()
 			{
 				if (Context::globalObjectIDCounter > 0)
 				{
+					Toast toast
+					{
+						"Scene Cleared",
+						std::to_string(static_cast<int>(Context::object.size()) - 8) + " objects deleted.",
+						ImColor{ 255, 255, 0, 255 },
+						Context::defaultToastDuration,
+						Context::defaultToastDuration
+					};
+
 					resetScene();
+					addToastNotification(toast);
 				}
 				else
 				{
 					Toast toast
 					{
 						"Scene Not Cleared",
-						"Scene Not Cleared: The scene was not modified.",
-						ImColor{ 255, 255, 0, 255 },
+						"The scene was not modified.",
+						ImColor{ 0, 0, 255, 255 },
 						Context::defaultToastDuration,
 						Context::defaultToastDuration
 					};
@@ -181,7 +191,7 @@ void menuBar()
 							Toast toast
 							{
 								"Scene Not Loaded",
-								"Scene Not Loaded: File '" + entry.path().filename().string() + "' was not loaded successfully.",
+								"File '" + entry.path().filename().string() + "' was not loaded successfully.",
 								ImColor{ 255, 0, 0, 255 },
 								Context::defaultToastDuration,
 								Context::defaultToastDuration
@@ -253,7 +263,33 @@ void menuBar()
 
 		if (ImGui::Button("Yes"))
 		{
-			removeFile(deleteFilename);
+			if (removeFile(deleteFilename) >= 0)
+			{
+				Toast toast
+				{
+					"File Deleted",
+					"File '" + deleteFilename + "' was deleted successfully.",
+					ImColor{ 0, 255, 0, 255 },
+					Context::defaultToastDuration,
+					Context::defaultToastDuration
+				};
+
+				addToastNotification(toast);
+			}
+			else
+			{
+				Toast toast
+				{
+					"File Not Deleted",
+					"File '" + deleteFilename + "' was not deleted successfully.",
+					ImColor{ 255, 0, 0, 255 },
+					Context::defaultToastDuration,
+					Context::defaultToastDuration
+				};
+
+				addToastNotification(toast);
+			}
+
 			deleteFilename = "";
 			ImGui::CloseCurrentPopup();
 		}
@@ -282,7 +318,18 @@ void menuBar()
 
 		if (ImGui::Button("Yes"))
 		{
+			Toast toast
+			{
+				"Overwrite File",
+				"File '" + overwriteFilename + "' was overwritten successfully.",
+				ImColor{ 255, 0, 0, 255 },
+				Context::defaultToastDuration,
+				Context::defaultToastDuration
+			};
+
 			writeFile(overwriteFilename, Context::inputData);
+			addToastNotification(toast);
+			
 			overwriteFilename = "";
 			ImGui::CloseCurrentPopup();
 		}
@@ -322,11 +369,24 @@ void menuBar()
 				Toast toast
 				{
 					"File Saved",
-					"File Saved: '" + filename + "' was saved successfully.",
+					"'" + filename + "' was saved successfully.",
 					ImColor{ 0, 255, 0, 255 },
 					Context::defaultToastDuration,
 					Context::defaultToastDuration
 				};
+				addToastNotification(toast);
+			}
+			else
+			{
+				Toast toast
+				{
+					"File Not Saved",
+					"Failed to save file '" + filename + "'.",
+					ImColor{ 255, 0, 0, 255 },
+					Context::defaultToastDuration,
+					Context::defaultToastDuration
+				};
+
 				addToastNotification(toast);
 			}
 
@@ -388,11 +448,13 @@ void getUserInput(std::vector<Object>& object)
 		errorContext.end = errorContext.start + static_cast<int>(diag->length);
 	}
 
+	const char* example{ "E.g.: var = Point(1,1,1)" };
+
 	pushErrorStyle(diag);
 	if (!diag) 
-		isEnterPressed = ImGui::InputTextWithHint("Input", "input", inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, AutocompleteCallback, &context);
+		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, AutocompleteCallback, &context);
 	else
-		isEnterPressed = ImGui::InputTextWithHint("Input", "input", inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, ErrorSelectionCallback, &errorContext);
+		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, ErrorSelectionCallback, &errorContext);
 	popErrorStyle(diag);
 
 	if (ImGui::IsItemEdited())
@@ -720,12 +782,12 @@ void showVariables(std::vector<Object>& object)
 
 			bool valuesChanged{ getObjectInputFloats(obj) };
 
-			ImGui::ColorEdit4((obj.getName() + "::Color").c_str(), obj.getColorPointer(), ImGuiColorEditFlags_Float | colorFlags);
+			ImGui::ColorEdit4(("Color###" + obj.getName()).c_str(), obj.getColorPointer(), ImGuiColorEditFlags_Float | colorFlags);
 
 			bool colorChanged{ ImGui::IsItemDeactivatedAfterEdit() };
 
 			if (valuesChanged || colorChanged) // saves the changes
-				updateObject(static_cast<int>(i), obj, object, Context::vertexData);
+				updateObject(static_cast<int>(i), obj);
 
 			std::string deleteText{ "Delete###" + std::to_string(obj.getID()) };
 
@@ -750,8 +812,9 @@ bool getObjectInputFloats(Object& obj)
 
 	bool isDeactivated{ false };
 
-	auto checkInput = [&](const std::string& label, float* data) {
-		ImGui::InputFloat3((obj.getName() + label).c_str(), data, "%.2f", textFlags);
+	auto checkInput = [&](const std::string& label, float* data) 
+		{
+		ImGui::InputFloat3((label + obj.getName()).c_str(), data, "%.2f", textFlags);
 		if (ImGui::IsItemDeactivatedAfterEdit())
 		{
 			isDeactivated = true;
@@ -764,39 +827,39 @@ bool getObjectInputFloats(Object& obj)
 		{},
 		[&](glm::vec3& point)
 		{
-			checkInput("::Point", &point[0]);
+			checkInput("Point###A", &point[0]);
 		},
 		[&](Eval::IPoint& iPoint)
 		{
-			checkInput("::Point", &iPoint.point[0]);
+			checkInput("Point###A", &iPoint.point[0]);
 		},
 		[&](Eval::Vector& vector)
 		{
-			checkInput("::Origin", &vector.origin[0]);
-			checkInput("::Head", &vector.head[0]);
+			checkInput("Origin###A", &vector.origin[0]);
+			checkInput("Head###B", &vector.head[0]);
 		},
 		[&](Eval::Segment& segment)
 		{
-			checkInput("::A", &segment.A[0]);
-			checkInput("::B", &segment.B[0]);
+			checkInput("A###A", &segment.A[0]);
+			checkInput("B###B", &segment.B[0]);
 		},
 		[&](Eval::Line& line)
 		{
-			checkInput("::Point", &line.point[0]);
-			checkInput("::DVecOrigin", &line.dVecOrigin[0]);
-			checkInput("::DVecHead", &line.dVecHead[0]);
+			checkInput("Point###A", &line.point[0]);
+			checkInput("DVecOrigin###B", &line.dVecOrigin[0]);
+			checkInput("DVecHead###C", &line.dVecHead[0]);
 		},
 		[&](Eval::ILine& iLine)
 		{
-			checkInput("::Point", &iLine.line.point[0]);
-			checkInput("::DVecOrigin", &iLine.line.dVecOrigin[0]);
-			checkInput("::DVecHead", &iLine.line.dVecHead[0]);
+			checkInput("Point###A", &iLine.line.point[0]);
+			checkInput("DVecOrigin###B", &iLine.line.dVecOrigin[0]);
+			checkInput("DVecHead###C", &iLine.line.dVecHead[0]);
 		},
 		[&](Eval::Plane& plane)
 		{
-			checkInput("::Point", &plane.point[0]);
-			checkInput("::NormalOrigin", &plane.normalOrigin[0]);
-			checkInput("::NormalHead", &plane.normalHead[0]);
+			checkInput("Point###A", &plane.point[0]);
+			checkInput("NormalOrigin###B", &plane.normalOrigin[0]);
+			checkInput("NormalHead###C", &plane.normalHead[0]);
 		},
 		[](Context::RuntimeError error)
 		{
@@ -810,8 +873,6 @@ bool getObjectInputFloats(Object& obj)
 
 int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)
 {
-	//using Context::object;
-
 	constexpr float scale{ 0.1f };
 
 	// object data
@@ -1143,8 +1204,59 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	std::string objName{};
 
-	if (targetName) objName = *targetName;
-	else objName = Context::objectSymbols[type]++;
+	if (targetName) 
+	{
+		if (targetName->length() == 1)
+		{
+			int idx{ searchObjectIndexByName(*targetName, object) };
+
+			if (idx >= 0)
+			{
+				Object newObj{ object[idx] };
+				newObj.setComponents(evalObj);
+
+				updateObject(idx, newObj);
+				return;
+			}
+
+			else
+			{
+				Toast toast
+				{
+					"Variable Name Error",
+					"Variables must have more than one character. Using Default name '" + std::string(1, Context::objectSymbols[type]) + "'.",
+					ImColor{ 255, 0, 0, 255 },
+					Context::defaultToastDuration,
+					Context::defaultToastDuration
+				};
+
+				addToastNotification(toast);
+
+				objName = Context::objectSymbols[type]++;
+			}
+		}
+
+		else
+		{
+			objName = *targetName;
+
+			int idx{ searchObjectIndexByName(objName, object) };
+
+			if (idx >= 0)
+			{
+				Object newObj{ object[idx] };
+				newObj.setComponents(evalObj);
+
+				updateObject(idx, newObj);
+				return;
+			}
+		}
+	}
+
+	else 
+	{
+		objName = Context::objectSymbols[type]++;
+	}
 
 	unsigned int primitive{ Context::primitives[type] };
 	glm::vec4 color{ Context::defaultColors[type] };

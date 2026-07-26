@@ -194,8 +194,11 @@ void deleteObject(int objIndex, std::vector<Object>& object, std::vector<float>&
 }
 
 // function to update objects
-void updateObject(int objIndex, const Object& newObj, std::vector<Object>& object, std::vector<float>& vertexData)
+void updateObject(int objIndex, const Object& newObj)
 {
+	using Context::object;
+	using Context::vertexData;
+
 	object[objIndex] = newObj;
 	std::vector<int> toBeDeleted{};
 
@@ -257,11 +260,118 @@ void updateObject(int objIndex, const Object& newObj, std::vector<Object>& objec
 		int newOffset = static_cast<int>(vertexData.size()) / 7;
 		obj.setOffset(newOffset);
 		
-		//draw(obj.getType(), obj.getComponents(), obj.getColor(), obj.getParentIDs(), obj.getpCompIndex(), true);
 		generateObjectVertices(obj, object, vertexData);
 	}
 
+	updateInputData(newObj);
+
 	updateBufferData(vertexData);
+}
+
+void updateInputData(const Object& updatedObj)
+{
+	const RuntimeValue& comp{ updatedObj.getComponents() };
+	const std::array<int, 3> pIDs{ updatedObj.getParentIDs() };
+
+	using Context::inputData;
+	using Context::object;
+
+	std::stringstream ss{};
+
+	auto getObjectNameByID = [&](int id) -> std::string {
+		int idx{ searchObjectByID(id, object) };
+		if (idx != -1)
+		{
+			return object[static_cast<size_t>(idx)].getName();
+		}
+		return "NullObject";
+		};
+
+	std::visit(overloaded
+		{
+		[](float f) {},
+		[&](const glm::vec3& p)
+		{
+			ss << updatedObj.getName() << " = Point(" << p << ")";
+		},
+		[&](const Eval::Vector& vector)
+		{
+			ss << updatedObj.getName() << " = Vector(";
+
+			if (pIDs[0] >= 0)
+				ss << getObjectNameByID(pIDs[0]) << ", ";
+			else
+				ss << "Point(" << vector.origin << "), ";
+
+			if (pIDs[1] >= 0)
+				ss << getObjectNameByID(pIDs[1]) << ")";
+			else
+				ss << "Point(" << vector.head << "))";
+		},
+		[&](const Eval::Segment& segment)
+		{
+			ss << updatedObj.getName() << " = Segment(";
+
+			if (pIDs[0] >= 0)
+				ss << getObjectNameByID(pIDs[0]) << ", ";
+			else
+				ss << "Point(" << segment.A << "), ";
+
+			if (pIDs[1] >= 0)
+				ss << getObjectNameByID(pIDs[1]) << ")";
+			else
+				ss << "Point(" << segment.B << "))";
+		},
+		[&](const Eval::Line& line)
+		{
+			ss << updatedObj.getName() << " = Line(";
+
+			if (pIDs[0] >= 0)
+				ss << getObjectNameByID(pIDs[0]) << ", ";
+			else
+				ss << "Point(" << line.point << "), ";
+
+			if (pIDs[1] >= 0)
+			{
+				ss << getObjectNameByID(pIDs[1]) << ")";
+			}
+			else
+			{
+				if (line.pTypes[1] == Object::Point)
+					ss << "Point(" << line.dVecHead << "))";
+				else
+					ss << "Vector(Point(" << line.dVecOrigin << "), Point(" << line.dVecHead << ")))";
+			}
+		},
+		[&](const Eval::Plane& plane)
+		{
+			ss << updatedObj.getName() << " = Plane(";
+
+			if (pIDs[0] >= 0)
+				ss << getObjectNameByID(pIDs[0]) << ", ";
+			else
+				ss << "Point(" << plane.point << "), ";
+
+			if (pIDs[1] >= 0)
+			{
+				ss << getObjectNameByID(pIDs[1]) << ")";
+			}
+			else
+			{
+				ss << "Vector(Point(" << plane.normalOrigin << "), Point(" << plane.normalHead << ")))";
+			}
+		},
+		[](const Eval::IPoint& iPoint) {},
+		[](const Eval::ILine& iLine) {},
+		[](const Context::RuntimeError& error) {} 
+		}, comp);
+
+	std::string generatedCmd{ ss.str() };
+
+	if (!generatedCmd.empty())
+	{
+		inputData += generatedCmd + "\n";
+	}
 }
 
 bool rebuildObjectFromParents(Object& obj, const std::vector<Object>& object)
@@ -333,8 +443,17 @@ bool rebuildObjectFromParents(Object& obj, const std::vector<Object>& object)
 			// default vector
 			else
 			{
-				updatedVec.origin = resolvePointComponent(pIDs[0], currentVec->origin);
-				updatedVec.head = resolvePointComponent(pIDs[1], currentVec->head);
+				if (currentVec->pTypes[0] == Object::Null && currentVec->pTypes[1] == Object::Point)
+				{
+					updatedVec.head = resolvePointComponent(pIDs[0], currentVec->head);
+				}
+
+				else
+				{
+					updatedVec.origin = resolvePointComponent(pIDs[0], currentVec->origin);
+					updatedVec.head = resolvePointComponent(pIDs[1], currentVec->head);
+				}
+
 			}
 
 			obj.setComponents(updatedVec);
@@ -1483,16 +1602,6 @@ void resetScene()
 					};
 
 	getEnvironmentVertices(vertexData, true);
-
-	Toast toast
-	{
-		"Scene Clear",
-		"Scene Cleared: " + std::to_string(objDeleteCount) + " objects deleted.",
-		ImColor{ 255, 255, 0, 255 },
-		defaultToastDuration,
-		defaultToastDuration
-	};
-	addToastNotification(toast);
 }
 
 bool loadSceneFromFile(const std::string& filename)
@@ -1554,12 +1663,14 @@ bool loadSceneFromFile(const std::string& filename)
 
 	Toast toast
 	{
-		"Object Load",
-		"Object Load: " + std::to_string(objCount) + " objects loaded.",
-		ImColor{ 255, 0, 0, 255 },
+		"Scene Loaded",
+		"File '" + filename + "' was loaded successfully: " + std::to_string(objCount) + " objects loaded.",
+		ImColor{ 0, 255, 0, 255 },
 		Context::defaultToastDuration,
 		Context::defaultToastDuration
 	};
+
+	addToastNotification(toast);
 
 	updateBufferData(Context::vertexData);
 	return true;

@@ -25,7 +25,7 @@ auto compareRuntimeValue(Object::Type type, const RuntimeValue& components1, con
 auto searchObjectByID(int id, const std::vector<Object>& objectRef)																	 -> int;
 auto searchObjectIndexByName(const std::string& objName, const std::vector<Object>& object)											 -> int;
 auto rebuildObjectFromParents(Object& obj, const std::vector<Object>& object)														 -> bool;
-auto updateObject(int objIndex, const Object& newObj, std::vector<Object>& object, std::vector<float>& vertexData)					 -> void;
+auto updateObject(int objIndex, const Object& newObj)																				 -> void;
 auto deleteObject(int objIndex, std::vector<Object>& object, std::vector<float>& vertexData)										 -> void;
 auto extractPName(const Object& obj)																								 -> std::string;
 auto testInput(const std::string& input)																							 -> std::vector<std::string>;
@@ -42,6 +42,8 @@ auto extractLine(const RuntimeValue& val)			   -> std::optional<Eval::Line>;
 
 void resetScene();
 bool loadSceneFromFile(const std::string& filename);
+
+void updateInputData(const Object& updatedObj);
 
 bool projectWorldToScreen
 (
