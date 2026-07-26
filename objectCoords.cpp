@@ -492,7 +492,7 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 	if (firstRun)
 	{
 		size_t objIdx{ createObject({ "GRID_PLANE", Object::Plane, GL_TRIANGLES }, static_cast<int>(planeVertices.size()) / 7, {}, glm::vec4(0.0f, 0.0f, 0.0f, 0.1f), 0) };
-		Context::symbolTable["GRID_PLANE"] = objIdx;
+		//Context::symbolTable["GRID_PLANE"] = objIdx;
 	}
 	
 	vertexData = std::move(planeVertices);
@@ -546,7 +546,7 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 			const std::string objName{ obj.getName() };
 			size_t objIdx{ createObject(std::move(obj), vCountCilinder + vCountCone, axisPos, color, 0) };
 
-			Context::symbolTable[objName] = objIdx;
+			//Context::symbolTable[objName] = objIdx;
 
 			++axis;
 		}
@@ -583,7 +583,7 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 			const std::string objName{ obj.getName() };
 			size_t objIdx{ createObject(std::move(obj), vCountRing, axisPos, ringColor, 0) };
 
-			Context::symbolTable[objName] = objIdx;
+			//Context::symbolTable[objName] = objIdx;
 
 			++axis;
 		}
@@ -598,6 +598,6 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 		const std::string objName{ obj.getName() };
 		size_t objIdx{ createObject(std::move(obj), vCountGrid, {}, glm::vec4(0.0f, 0.0f, 0.0f, 0.5f), 0) };
 
-		Context::symbolTable[objName] = objIdx;
+		//Context::symbolTable[objName] = objIdx;
 	}
 }

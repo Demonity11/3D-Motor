@@ -1581,15 +1581,31 @@ void resetScene()
 {
 	using namespace Context;
 
+	if (object.size() < 8)
+	{
+		return;
+	}
+
 	const int objDeleteCount{ static_cast<int>(object.size()) - 8 };
 
-	vertexData.clear();
+	if (objDeleteCount > 0)
+	{
+		size_t floatOffset{ static_cast<size_t>(object[7].getOffset() * 7 + object[7].getVertexCount() * 7) };
+
+		object.erase(object.begin() + 8, object.end());
+
+		if (floatOffset < vertexData.size())
+		{
+			vertexData.erase(vertexData.begin() + floatOffset, vertexData.end());
+		}
+	}
+
 	symbolTable.clear();
-	object.clear();
 
 	prevSelectedObjID = -1;
 	selectedObjID = -1;
-	globalObjectIDCounter = 0;
+
+	globalObjectIDCounter = 8;
 	inputData = "";
 
 	objectSymbols = std::map<Object::Type, char>
@@ -1601,12 +1617,12 @@ void resetScene()
 						{ Object::Line,    'r' }
 					};
 
-	getEnvironmentVertices(vertexData, true);
+	updateBufferData(vertexData);
 }
 
 bool loadSceneFromFile(const std::string& filename)
 {
-	if (Context::globalObjectIDCounter > 0)
+	if (Context::globalObjectIDCounter > 8)
 		resetScene();
 
 	const std::vector<std::string>& inputArray{ readFile(filename) };
