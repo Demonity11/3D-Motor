@@ -46,7 +46,7 @@ void softResetScene();
 void resetScene();
 bool loadSceneFromFile(const std::string& filename);
 
-bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag);
+int evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag);
 
 void updateInputData(const Object& updatedObj);
 

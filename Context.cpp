@@ -29,20 +29,20 @@ namespace Context
 	// store FunctionArgs which has name, type, and expected arguments
 	std::vector<FunctionArgs> function
 	{
-		{"Point",     Object::Point,   {}											  },
-		{"Vector",    Object::Vector,  {Object::Point,  Object::Point}				  },
-		{"Vector",    Object::Vector,  {Object::Point}								  },
-		{"Cross",     Object::Vector,  {Object::Vector, Object::Vector}               },
-		{"Segment",   Object::Segment, {Object::Point,  Object::Point}				  },
-		{"Line",	  Object::Line,    {Object::Point,  Object::Point}				  },
-		{"Line",      Object::Line,    {Object::Point,  Object::Vector}				  },
-		{"Plane",     Object::Plane,   {Object::Point,  Object::Vector}				  },
-		{"Plane",     Object::Plane,   {Object::Point,  Object::Point, Object::Point} },
-		{"Intersect", Object::Point,   {Object::Line,   Object::Plane}			      },
-		{"Intersect", Object::Point,   {Object::Plane,  Object::Line}			      },
-		{"Intersect", Object::Point,   {Object::Line,   Object::Line}			      },
-		{"Intersect", Object::Line,    {Object::Plane,  Object::Plane}				  },
-		{"Delete",    Object::Null,    {Object::Variable}							  }
+		{"Point",     Object::Point,   {Object::Number, Object::Number, Object::Number} },
+		{"Vector",    Object::Vector,  {Object::Point,  Object::Point}				    },
+		{"Vector",    Object::Vector,  {Object::Point}								    },
+		{"Cross",     Object::Vector,  {Object::Vector, Object::Vector}                 },
+		{"Segment",   Object::Segment, {Object::Point,  Object::Point}				    },
+		{"Line",	  Object::Line,    {Object::Point,  Object::Point}				    },
+		{"Line",      Object::Line,    {Object::Point,  Object::Vector}				    },
+		{"Plane",     Object::Plane,   {Object::Point,  Object::Vector}				    },
+		{"Plane",     Object::Plane,   {Object::Point,  Object::Point, Object::Point}   },
+		{"Intersect", Object::Point,   {Object::Line,   Object::Plane}			        },
+		{"Intersect", Object::Point,   {Object::Plane,  Object::Line}			        },
+		{"Intersect", Object::Point,   {Object::Line,   Object::Line}			        },
+		{"Intersect", Object::Line,    {Object::Plane,  Object::Plane}				    },
+		{"Delete",    Object::Null,    {Object::Variable}							    }
 	};
 
 	std::vector<Toast> toastNotifications{};

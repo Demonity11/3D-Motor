@@ -9,6 +9,7 @@ enum class ObjectType
 	Segment,
 	Line,
 	Plane,
+	Number,
 	Variable
 };
 

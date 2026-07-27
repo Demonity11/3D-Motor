@@ -9,59 +9,10 @@
 #include <sstream>
 #include <iostream>
 
+#include "imgui/imgui_internal.h"
+
 #include "fileManager.h"
 #include <filesystem>
-
-struct AutocompleteContext
-{
-	bool textWasEdited = false;
-	std::string textToInject{};
-};
-
-int AutocompleteCallback(ImGuiInputTextCallbackData* data) 
-{
-	AutocompleteContext* ctx{ (AutocompleteContext*)data->UserData };
-
-	if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit) 
-	{
-		ctx->textWasEdited = true;
-	}
-
-	if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways && !ctx->textToInject.empty())
-	{
-		data->DeleteChars(0, data->BufTextLen);
-		data->InsertChars(0, ctx->textToInject.c_str());
-		data->BufDirty = true;
-
-		if (data->BufTextLen > 0 && data->Buf[data->BufTextLen - 1] == ')')
-		{
-			data->CursorPos = data->BufTextLen - 1;
-		}
-
-		ctx->textToInject = "";
-	}
-
-	return 0;
-}
-
-struct ErrorSelectionContext
-{
-	int start{ -1 };
-	int end{ -1 };
-};
-
-int ErrorSelectionCallback(ImGuiInputTextCallbackData* data)
-{
-	ErrorSelectionContext* ctx{ (ErrorSelectionContext*)data->UserData };
-
-	if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways && ctx->start != -1)
-	{
-		data->SelectionStart = ctx->start;
-		data->SelectionEnd = ctx->end;
-	}
-
-	return 0;
-}
 
 // initializes ImGui context
 void initializeImGui(GLFWwindow* window)
@@ -406,6 +357,192 @@ void menuBar()
 	}
 }
 
+struct AutocompleteContext
+{
+	bool textWasEdited{ false };
+	bool autoCloseParen{ false };
+	bool skipClosingParen{ false };
+
+	std::string textToInject{};
+	int replaceStart{ 0 };
+	int replaceLength{ 0 };
+	int cursorPos{ 0 };
+};
+
+int AutocompleteCallback(ImGuiInputTextCallbackData* data)
+{
+	AutocompleteContext* ctx{ static_cast<AutocompleteContext*>(data->UserData) };
+
+	ctx->cursorPos = data->CursorPos;
+
+	if (data->EventFlag == ImGuiInputTextFlags_CallbackCharFilter)
+	{
+		if (data->EventChar == '(')
+		{
+			ctx->autoCloseParen = true;
+			return 0;
+		}
+
+		if (data->EventChar == ')' && data->CursorPos < data->BufTextLen && data->Buf[data->CursorPos] == ')')
+		{
+			ctx->skipClosingParen = true;
+			return 1; 
+		}
+	}
+
+	if (data->EventFlag == ImGuiInputTextFlags_CallbackEdit)
+	{
+		ctx->textWasEdited = true;
+
+		if (ctx->autoCloseParen)
+		{
+			data->InsertChars(data->CursorPos, ")");
+			data->BufDirty = true;
+			data->CursorPos--;
+			ctx->autoCloseParen = false; 
+		}
+	}
+
+	if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways)
+	{
+		if (ctx->skipClosingParen)
+		{
+			data->CursorPos++;
+			ctx->skipClosingParen = false;
+		}
+
+		if (!ctx->textToInject.empty())
+		{
+			data->DeleteChars(ctx->replaceStart, ctx->replaceLength);
+			data->InsertChars(ctx->replaceStart, ctx->textToInject.c_str());
+			data->BufDirty = true;
+
+			data->CursorPos = ctx->replaceStart + static_cast<int>(ctx->textToInject.length()) - 1;
+
+			ctx->textToInject.clear();
+		}
+	}
+
+	return 0;
+}
+
+struct ActiveToken
+{
+	std::string text{};
+	int startIdx{ 0 };
+	int length{ 0 };
+};
+
+ActiveToken getActiveTokenBeforeCursor(const char* buf, int cursorPos)
+{
+	int end{ cursorPos };
+	int start{ end };
+
+	while (start > 0 && (std::isalnum(static_cast<unsigned char>(buf[start - 1])) || buf[start - 1] == '_'))
+	{
+		start--;
+	}
+
+	return ActiveToken
+	{
+		std::string(buf + start, end - start),
+		start,
+		end - start
+	};
+}
+
+struct CallContext
+{
+	std::string functionName{};
+	int activeParamIndex{ 0 };
+	bool insideCall{ false };
+};
+
+CallContext parseCallContext(const char* buf, int cursorPos)
+{
+	CallContext ctx{};
+	int depth{ 0 };
+	int commaCount{ 0 };
+	int parenPos{ -1 };
+
+	for (int i = cursorPos - 1; i >= 0; --i)
+	{
+		char c = buf[i];
+		if (c == ')') depth++;
+		else if (c == '(')
+		{
+			if (depth == 0)
+			{
+				parenPos = i;
+				break;
+			}
+			depth--;
+		}
+		else if (c == ',' && depth == 0)
+		{
+			commaCount++;
+		}
+	}
+
+	if (parenPos != -1)
+	{
+		ActiveToken funcToken = getActiveTokenBeforeCursor(buf, parenPos);
+		if (!funcToken.text.empty())
+		{
+			ctx.functionName = funcToken.text;
+			ctx.activeParamIndex = commaCount;
+			ctx.insideCall = true;
+		}
+	}
+
+	return ctx;
+}
+
+struct ErrorSelectionContext
+{
+	int start{ -1 };
+	int end{ -1 };
+	bool selectionDismissed{ false };
+};
+
+int ErrorSelectionCallback(ImGuiInputTextCallbackData* data)
+{
+	ErrorSelectionContext* ctx{ static_cast<ErrorSelectionContext*>(data->UserData) };
+
+	if (data->EventFlag == ImGuiInputTextFlags_CallbackAlways)
+	{
+		if (ctx->selectionDismissed)
+		{
+			return 0;
+		}
+
+		if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow) ||
+			ImGui::IsKeyPressed(ImGuiKey_RightArrow) ||
+			ImGui::IsKeyPressed(ImGuiKey_UpArrow) ||
+			ImGui::IsKeyPressed(ImGuiKey_DownArrow) ||
+			ImGui::IsKeyPressed(ImGuiKey_Home) ||
+			ImGui::IsKeyPressed(ImGuiKey_End))
+		{
+			ctx->selectionDismissed = true;
+			ctx->start = -1;
+			ctx->end = -1;
+
+			data->SelectionStart = data->CursorPos;
+			data->SelectionEnd = data->CursorPos;
+
+			return 0;
+		}
+
+		if (ctx->start != -1)
+		{
+			data->SelectionStart = ctx->start;
+			data->SelectionEnd = ctx->end;
+		}
+	}
+
+	return 0;
+}
+
 // captures user input through Dear ImGui interface
 void getUserInput(std::vector<Object>& object)
 {
@@ -426,10 +563,11 @@ void getUserInput(std::vector<Object>& object)
 	static bool focusNextFrame{ false };
 
 	ImGuiInputTextFlags inputFlags
-	{ 
-		ImGuiInputTextFlags_EnterReturnsTrue | 
+	{
+		ImGuiInputTextFlags_EnterReturnsTrue |
 		ImGuiInputTextFlags_CallbackEdit |
-		ImGuiInputTextFlags_CallbackAlways
+		ImGuiInputTextFlags_CallbackAlways |
+		ImGuiInputTextFlags_CallbackCharFilter
 	};
 
 	ImGuiID inputID{ ImGui::GetID("Input") };
@@ -444,14 +582,23 @@ void getUserInput(std::vector<Object>& object)
 
 	if (diag)
 	{
-		errorContext.start = static_cast<int>(diag->charPosition);
-		errorContext.end = errorContext.start + static_cast<int>(diag->length);
+		if (errorContext.start != static_cast<int>(diag->charPosition) && !errorContext.selectionDismissed)
+		{
+			errorContext.start = static_cast<int>(diag->charPosition);
+			errorContext.end = errorContext.start + static_cast<int>(diag->length);
+		}
+	}
+	else
+	{
+		errorContext.start = -1;
+		errorContext.end = -1;
+		errorContext.selectionDismissed = false;
 	}
 
 	const char* example{ "E.g.: var = Point(1,1,1)" };
 
 	pushErrorStyle(diag);
-	if (!diag) 
+	if (!diag)
 		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, AutocompleteCallback, &context);
 	else
 		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, ErrorSelectionCallback, &errorContext);
@@ -462,53 +609,105 @@ void getUserInput(std::vector<Object>& object)
 		diag = std::nullopt;
 		errorContext.start = -1;
 		errorContext.end = -1;
+		errorContext.selectionDismissed = false;
+	}
+
+	const ImVec2 inputPosMin{ ImGui::GetItemRectMin() };
+	const ImVec2 inputPosMax{ ImGui::GetItemRectMax() };
+
+	CallContext callCtx = parseCallContext(inputBuffer, context.cursorPos);
+
+	if (callCtx.insideCall && inputBuffer[0] != '\0' && !diag)
+	{
+		std::vector<FunctionArgs> overloads{};
+		for (const auto& func : Context::function)
+		{
+			if (func.name == callCtx.functionName)
+				overloads.push_back(func);
+		}
+
+		if (!overloads.empty())
+		{
+			ImGui::SetNextWindowPos(ImVec2(inputPosMin.x, inputPosMax.y + 5.0f));
+
+			ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.12f, 0.14f, 0.18f, 0.95f));
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 6));
+
+			if (ImGui::BeginTooltip())
+			{
+				for (size_t ovIdx{ 0 }; ovIdx < overloads.size(); ++ovIdx)
+				{
+					const FunctionArgs& ov{ overloads[ovIdx] };
+
+					ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "%s(", ov.name.c_str());
+					ImGui::SameLine(0, 0);
+
+					for (size_t argIdx = 0; argIdx < ov.expectedArgs.size(); ++argIdx)
+					{
+						std::string argTypeName = getStringFunctionType(ov.expectedArgs[argIdx]);
+
+						if (static_cast<int>(argIdx) == callCtx.activeParamIndex)
+						{
+							ImGui::TextColored(ImVec4(0.23f, 0.56f, 0.88f, 1.00f), "%s", argTypeName.c_str());
+						}
+						else
+						{
+							ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "%s", argTypeName.c_str());
+						}
+
+						if (argIdx < ov.expectedArgs.size() - 1)
+						{
+							ImGui::SameLine(0, 0);
+							ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), ", ");
+							ImGui::SameLine(0, 0);
+						}
+					}
+
+					ImGui::SameLine(0, 0);
+					ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), ")");
+				}
+				ImGui::EndTooltip(); 
+			}
+
+			ImGui::PopStyleVar();
+			ImGui::PopStyleColor();
+		}
 	}
 
 	bool isInputActive{ ImGui::IsItemActive() };
 	bool isInputFocused{ ImGui::IsItemFocused() };
 
-	if (isInputActive || isInputFocused) 
+	if (isInputActive || isInputFocused)
 	{
 		activePopupID = inputID;
 	}
 
-	if (context.textWasEdited && activePopupID == inputID) 
+	if (context.textWasEdited && activePopupID == inputID && !diag)
 	{
 		showDropdown = true;
 	}
 
-	std::string currentText(inputBuffer);
+	ActiveToken activeToken{ getActiveTokenBeforeCursor(inputBuffer, context.cursorPos) };
 	std::vector<FunctionArgs> matches{};
 
-	if (showDropdown && !currentText.empty() && activePopupID == inputID)
+	if (showDropdown && !activeToken.text.empty() && activePopupID == inputID)
 	{
 		for (const auto& func : Context::function)
 		{
-			if (func.name.rfind(currentText, 0) == 0 && func.name != currentText)
+			if (func.name.rfind(activeToken.text, 0) == 0 && func.name != activeToken.text)
+			{
 				matches.push_back(func);
+			}
 		}
 	}
 
 	if (!matches.empty() && activePopupID == inputID && showDropdown)
 	{
-		ImVec2 inputPosMin{ ImGui::GetItemRectMin() };
-		ImVec2 inputPosMax{ ImGui::GetItemRectMax() };
-
 		ImGui::SetNextWindowPos(ImVec2(inputPosMin.x, inputPosMax.y));
-		ImGui::SetNextWindowSize(ImVec2(inputPosMax.x - inputPosMin.x, 0));
-
-		ImGuiWindowFlags flags
-		{
-			ImGuiWindowFlags_NoTitleBar |
-			ImGuiWindowFlags_NoMove |
-			ImGuiWindowFlags_NoResize |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_ChildWindow
-		};
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(4, 4));
-		
-		if (ImGui::Begin("##AutocompletePopup", nullptr, flags))
+
+		if (ImGui::BeginTooltip())
 		{
 			if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) { selectedIndex++; }
 			if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) { selectedIndex--; }
@@ -516,64 +715,52 @@ void getUserInput(std::vector<Object>& object)
 			if (selectedIndex < 0) selectedIndex = static_cast<int>(matches.size() - 1);
 			if (selectedIndex >= static_cast<int>(matches.size())) selectedIndex = 0;
 
-			for (int i{ 0 }; i < static_cast<int>(matches.size()); ++i) 
+			for (int i{ 0 }; i < static_cast<int>(matches.size()); ++i)
 			{
 				const bool isSelected{ (i == selectedIndex) };
-
-				const auto& match{ matches[i] };
+				const FunctionArgs& match{ matches[i] };
 
 				std::string func{ match.name + "(" };
 
-				if (match.name == "Point")
-					func += ")";
-
-				for (std::size_t i{ 0 }; i < match.expectedArgs.size(); ++i)
+				for (std::size_t j{ 0 }; j < match.expectedArgs.size(); ++j)
 				{
-					const auto arg{ getStringFunctionType(match.expectedArgs[i]) };
+					const auto arg{ getStringFunctionType(match.expectedArgs[j]) };
 
-					if (i < match.expectedArgs.size() - 1)
+					if (j < match.expectedArgs.size() - 1)
 						func += arg + ", ";
 					else
 						func += arg + ")";
 				}
 
-				if (ImGui::Selectable(func.c_str(), isSelected))
+				if (ImGui::Selectable(func.c_str(), isSelected) || (isSelected && ImGui::IsKeyPressed(ImGuiKey_Tab)))
 				{
 					context.textToInject = matches[i].name + "()";
-					context.textWasEdited = false;
-					showDropdown = false;
-					selectedIndex = -1;
-					focusNextFrame = true;
-				}
-
-				if (isSelected && ImGui::IsKeyPressed(ImGuiKey_Tab))
-				{
-					context.textToInject = matches[i].name + "()";
+					context.replaceStart = activeToken.startIdx;
+					context.replaceLength = activeToken.length;
 					context.textWasEdited = false;
 					showDropdown = false;
 					selectedIndex = -1;
 					focusNextFrame = true;
 				}
 			}
+			ImGui::EndTooltip();
 		}
-
-		if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseClicked(0)) 
-		{
-			showDropdown = false;
-			selectedIndex = -1;
-		}
-
-		ImGui::EndChild();
 		ImGui::PopStyleVar();
 	}
 
-	if (isEnterPressed) 
+	if (showDropdown && !ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) && ImGui::IsMouseClicked(0))
 	{
 		showDropdown = false;
 		selectedIndex = -1;
+	}
+
+	if (isEnterPressed)
+	{
+		showDropdown = false;
+		context.textWasEdited = false;
+		selectedIndex = -1;
 
 		processInput(inputBuffer, Context::function, object, diag);
-
 		ImGui::SetKeyboardFocusHere(-1);
 	}
 
@@ -690,9 +877,14 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 		return;
 	}
 
-	if (evaluateDeleteFunc(diag))
+	int evalDelete{ evaluateDeleteFunc(diag) };
+	if (evalDelete == 0)
 	{
 		inputBuffer[0] = '\0';
+		return;
+	}
+	else if (evalDelete == -1)
+	{
 		return;
 	}
 
@@ -1239,7 +1431,7 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 				{
 					"Variable Name Error",
 					"Variables must have more than one character. Using Default name '" + std::string(1, Context::objectSymbols[type]) + "'.",
-					ImColor{ 255, 0, 0, 255 },
+					ImColor{ 0, 0, 255, 255 },
 					Context::defaultToastDuration,
 					Context::defaultToastDuration
 				};

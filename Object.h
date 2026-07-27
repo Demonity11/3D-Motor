@@ -23,6 +23,7 @@ public:
 	static constexpr Type Line = ObjectType::Line;
 	static constexpr Type Plane = ObjectType::Plane;
 	static constexpr Type Variable = ObjectType::Variable;
+	static constexpr Type Number = ObjectType::Number;
 
 	Object(std::string name, Type type, unsigned int primitive)
 		: m_name{ name }

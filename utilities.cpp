@@ -19,12 +19,14 @@ std::string getStringFunctionType(Object::Type type)
 {
 	switch (type)
 	{
-	case Object::Point:   return "Point";
-	case Object::Vector:  return "Vector";
-	case Object::Segment: return "Segment";
-	case Object::Line:    return "Line";
-	case Object::Plane:   return "Plane";
-	case Object::Null:	  return "Null";
+	case Object::Point:    return "Point";
+	case Object::Vector:   return "Vector";
+	case Object::Segment:  return "Segment";
+	case Object::Line:     return "Line";
+	case Object::Plane:    return "Plane";
+	case Object::Null:	   return "Null";
+	case Object::Variable: return "Variable";
+	case Object::Number:   return "Number";
 	}
 
 	return "???";
@@ -56,7 +58,10 @@ int searchObjectIndexByName(const std::string& objName, const std::vector<Object
 // return the object's index if it exists or return -1 if not
 int searchObjectByID(int id, const std::vector<Object>& objectRef)
 {
-	for (int objIndex{ 0 }; objIndex < objectRef.size(); ++objIndex)
+	if (id < 8)
+		return -1;
+
+	for (int objIndex{ 8 }; objIndex < objectRef.size(); ++objIndex)
 	{
 		const Object& obj{ objectRef[objIndex] };
 
@@ -157,7 +162,7 @@ void purgeObjectAndDependents(int targetID, std::vector<Object>& object)
 
 void deleteObjectByID(int targetID, std::vector<Object>& object, std::vector<float>& vertexData)
 {
-	const std::string& objName{ object[searchObjectByID(targetID, object)].getName() };
+	const std::string objName{ object[searchObjectByID(targetID, object)].getName() };
 
 	purgeObjectAndDependents(targetID, object);
 
@@ -1611,7 +1616,7 @@ void resetScene()
 	updateBufferData(vertexData);
 }
 
-bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
+int evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
 {
 	using namespace Parser;
 	using Context::object;
@@ -1632,7 +1637,7 @@ bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
 
 			Lexer::tokens.clear();
 			nodes.clear();
-			return false;
+			return -1;
 		}
 
 		int idx{ searchObjectIndexByName(std::string(nodes[1].content), object) };
@@ -1641,7 +1646,7 @@ bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
 		{
 			deleteObjectByID(object[idx].getID(), Context::object, Context::vertexData);
 
-			return true;
+			return 0;
 		}
 		else
 		{
@@ -1655,11 +1660,11 @@ bool evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
 
 			Lexer::tokens.clear();
 			nodes.clear();
-			return false;
+			return -1;
 		}
 	}
 
-	return false;
+	return 1;
 }
 
 bool loadSceneFromFile(const std::string& filename)
@@ -1695,9 +1700,14 @@ bool loadSceneFromFile(const std::string& filename)
 			return false;
 		}
 
-		if (evaluateDeleteFunc(diag))
+		int evalDelete{ evaluateDeleteFunc(diag) };
+		if (evalDelete == 0)
 		{
 			continue;
+		}
+		else if (evalDelete == -1)
+		{
+			break;
 		}
 
 		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
