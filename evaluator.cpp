@@ -80,7 +80,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
 
         if (node.content == "Point")
         {
-            return evaluatePointFunc(args);
+            return evaluatePointFunc(args, node);
         }
         else if (node.content == "Vector")
         {
@@ -211,7 +211,7 @@ void printRuntimeValue(const RuntimeValue& value)
         }, value);
 }
 
-RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args)
+RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node)
 {
     if (args.size() == 3 &&
         std::holds_alternative<float>(args[0]) &&
@@ -228,7 +228,14 @@ RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args)
         return point;
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::POINT::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Point only suports 3 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
@@ -266,7 +273,14 @@ RuntimeValue evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Nod
         }
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::VECTOR::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Vector only suports 1 or 2 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluateCrossFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
@@ -292,7 +306,14 @@ RuntimeValue evaluateCrossFunc(const std::vector<RuntimeValue>& args, const Node
         return cross;
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::CROSS::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Cross only suports 2 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluateSegmentFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
@@ -315,7 +336,14 @@ RuntimeValue evaluateSegmentFunc(const std::vector<RuntimeValue>& args, const No
         }
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::SEGMENT::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Segment only suports 2 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluateLineFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
@@ -357,7 +385,14 @@ RuntimeValue evaluateLineFunc(const std::vector<RuntimeValue>& args, const Node&
         }
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::LINE::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Line only suports 2 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
@@ -427,7 +462,14 @@ RuntimeValue evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node
         }
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::PLANE::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Plane only suports 2 or 3 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
@@ -436,7 +478,14 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const 
 
     if (nodes[cIdx[0]].type != Node::Variable || nodes[cIdx[1]].type != Node::Variable)
     {
-        return Context::RuntimeError{ "SEMANTICS::ERROR::INTERSECT_ONLY_ACCEPT_VARIABLES\n" };
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Intersect only suports variables as arguments.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     if (args.size() == 2 &&
@@ -511,7 +560,32 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const 
         return temp;
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::INTERSECT::INVALID_ARGUMENTS_OVERLOAD\n" };
+    if (args.size() == 2)
+    {
+        const Object::Type pType0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type pType1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+        const std::string strType0{ getStringFunctionType(pType0) };
+        const std::string strType1{ getStringFunctionType(pType1) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Intersect accepts (Line, Line), (Line, Plane),\n(Plane, Plane) arguments, (" + strType0 + ", " + strType1 + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
+    }
+
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+        "Intersect only suports 2 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        node.charPosition + node.content.length(),
+        1
+    };
 }
 
 RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args)
@@ -588,7 +662,14 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args)
         return temp;
     }
 
-    return Context::RuntimeError{ "SEMANTICS::ERROR::INTERSECT::INVALID_ARGUMENTS_OVERLOAD\n" };
+    return Context::RuntimeError
+    {
+        "Semantics Error at col 10: "
+        "Intersect only suports 2 arguments, " + std::to_string(args.size()) + " given.",
+        Context::ErrorSeverity::Error,
+        9,
+        1
+    };
 }
 
 Object::Type deduceTypeByIdentifierName(std::string_view func)

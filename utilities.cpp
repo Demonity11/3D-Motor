@@ -29,7 +29,7 @@ std::string getStringFunctionType(Object::Type type)
 	case Object::Number:   return "Number";
 	}
 
-	return "???";
+	return "Unknown";
 }
 
 Object::Type getObjectTypeFromString(const std::string& funcName)
@@ -1846,7 +1846,7 @@ void pushRedoBuffer(const std::string& lastInput)
 {
 	using Context::redoBuffer;
 
-	if (redoBuffer.size() == 5)
+	if (redoBuffer.size() == 10)
 	{
 		redoBuffer.erase(redoBuffer.begin());
 	}
