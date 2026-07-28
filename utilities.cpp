@@ -1722,13 +1722,7 @@ bool loadSceneFromFile(const std::string& filename)
 		}
 
 		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
-
-		Context::inputData += input;
-		
-		if (&input != &inputArray.back()) 
-		{
-			Context::inputData += "\n"; 
-		}
+		updateInputData(Context::object[Context::object.size() - 1]);
 
 		Lexer::tokens.clear();
 		Parser::nodes.clear();
@@ -1747,4 +1741,175 @@ bool loadSceneFromFile(const std::string& filename)
 
 	updateBufferData(Context::vertexData);
 	return true;
+}
+
+void undo()
+{
+	using Context::inputData;
+
+	if (!inputData.empty())
+	{
+		while (inputData.back() == '\n')
+		{
+			inputData.pop_back();
+		}
+
+		if (size_t newLine{ inputData.rfind("\n") }; newLine == std::string::npos)
+		{
+			pushRedoBuffer(inputData + "\n");
+			inputData.clear();
+		}
+		else
+		{
+			pushRedoBuffer(inputData.substr(newLine + 1, inputData.length() - newLine - 1) + "\n");
+			inputData.erase(inputData.begin() + newLine + 1, inputData.end());
+		}
+	}
+
+	std::string temp{};
+	std::vector<std::string> inputs{};
+	for (char c : inputData)
+	{
+		if (c != '\n')
+			temp += c;
+
+		else if (c == '\n')
+		{
+			inputs.push_back(temp);
+			temp = "";
+		}
+	}
+
+	if (Context::globalObjectIDCounter > 8)
+		resetScene();
+	else
+	{
+		// throw a toast
+		return;
+	}
+
+	for (const auto& input : inputs)
+	{
+		std::optional<Context::RuntimeError> diag{ std::nullopt };
+
+		tokenizer(input, diag);
+		if (diag)
+		{
+			Lexer::tokens.clear();
+
+			resetScene();
+			return;
+		}
+
+		parser(Lexer::tokens, diag);
+		if (diag)
+		{
+			Lexer::tokens.clear();
+			Parser::nodes.clear();
+
+			resetScene();
+			return;
+		}
+
+		int evalDelete{ evaluateDeleteFunc(diag) };
+		if (evalDelete == 0)
+		{
+			continue;
+		}
+		else if (evalDelete == -1)
+		{
+			break;
+		}
+
+		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
+
+		if (std::holds_alternative<Context::RuntimeError>(evalObj))
+		{
+			Lexer::tokens.clear();
+			Parser::nodes.clear();
+
+			resetScene();
+			return;
+		}
+
+		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
+		updateInputData(Context::object[Context::object.size() - 1]);
+
+		Lexer::tokens.clear();
+		Parser::nodes.clear();
+	}
+
+	updateBufferData(Context::vertexData);
+}
+
+void pushRedoBuffer(const std::string& lastInput)
+{
+	using Context::redoBuffer;
+
+	if (redoBuffer.size() == 5)
+	{
+		redoBuffer.erase(redoBuffer.begin());
+	}
+
+	redoBuffer.push_back(lastInput);
+}
+
+void redo()
+{
+	using Context::redoBuffer;
+	using Context::inputData;
+
+	std::string input{};
+
+	if (!redoBuffer.empty())
+	{
+		input = redoBuffer.back();
+
+		inputData += redoBuffer.back();
+		redoBuffer.pop_back();
+	}
+
+	else
+	{
+		return;
+	}
+
+	std::optional<Context::RuntimeError> diag{ std::nullopt };
+
+	tokenizer(input, diag);
+	if (diag)
+	{
+		Lexer::tokens.clear();
+
+		resetScene();
+		return;
+	}
+
+	parser(Lexer::tokens, diag);
+	if (diag)
+	{
+		Lexer::tokens.clear();
+		Parser::nodes.clear();
+
+		resetScene();
+		return;
+	}
+
+	int evalDelete{ evaluateDeleteFunc(diag) };
+
+	RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
+
+	if (std::holds_alternative<Context::RuntimeError>(evalObj))
+	{
+		Lexer::tokens.clear();
+		Parser::nodes.clear();
+
+		resetScene();
+		return;
+	}
+
+	extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
+
+	Lexer::tokens.clear();
+	Parser::nodes.clear();
 }

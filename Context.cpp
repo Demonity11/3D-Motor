@@ -22,6 +22,8 @@ namespace Context
 	bool isEnterPressed{ false };
 	bool leftClickPressed{ false };
 
+	bool debugWindow{ false };
+
 	std::vector<float> vertexData{};
 	// Objects conteiner
 	std::vector<Object> object{};
@@ -78,4 +80,6 @@ namespace Context
 	std::map<std::string, size_t> symbolTable{};
 
 	std::string inputData{};
+
+	std::vector<std::string> redoBuffer{};
 }

@@ -13,6 +13,7 @@
 
 #include "fileManager.h"
 #include <filesystem>
+#include <format>
 
 // initializes ImGui context
 void initializeImGui(GLFWwindow* window)
@@ -196,6 +197,21 @@ void menuBar()
 			}
 
 			ImGui::EndMenu();
+		}
+
+		if (ImGui::MenuItem("Undo"))
+		{
+			undo();
+		}
+
+		if (ImGui::MenuItem("Redo"))
+		{
+			redo();
+		}
+
+		if (ImGui::MenuItem("Debug"))
+		{
+			Context::debugWindow ^= 1;
 		}
 
 		ImGui::EndMenuBar();
@@ -901,6 +917,12 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& functi
 	}
 
 	extractAndRegisterObject(evalObj, object, Parser::nodes, Parser::nodes[0].targetName);
+	updateInputData(object[object.size() - 1]);
+
+	if (!Context::redoBuffer.empty())
+	{
+		Context::redoBuffer.clear();
+	}
 	
 	Lexer::tokens.clear();
 	Parser::nodes.clear();
@@ -1501,6 +1523,78 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 	Context::symbolTable[objName] = objIdx;
 
 	updateBufferData(Context::vertexData);
+}
 
-	updateInputData(object[object.size() - 1]);
+void debugWindow()
+{
+	using namespace Context;
+
+	if (ImGui::Begin("DebugWindow", NULL))
+	{
+		if (ImGui::CollapsingHeader("Context", NULL))
+		{
+			ImGui::SeparatorText("Flags");
+			ImGui::Text(std::format("isPressingRightClick: {}", isPressingRightClick).c_str());
+			ImGui::Text(std::format("isFirstMouse: {}", isFirstMouse).c_str());
+			ImGui::Text(std::format("isEnterPressed: {}", isEnterPressed).c_str());
+			ImGui::Text(std::format("leftClickPressed: {}", leftClickPressed).c_str());
+
+			ImGui::SeparatorText("Numbers");
+			ImGui::Text(std::format("fov: {}", fov).c_str());
+			ImGui::Text(std::format("prevSelectedObjID: {}", prevSelectedObjID).c_str());
+			ImGui::Text(std::format("selectedObjID: {}", selectedObjID).c_str());
+			ImGui::Text(std::format("globalObjectIDCounter: {}", globalObjectIDCounter).c_str());
+
+			ImGui::SeparatorText("Vertex Data");
+			ImGui::Text(std::format("Size: {}", vertexData.size()).c_str());
+			ImGui::Text(std::format("Capacity: {}", vertexData.capacity()).c_str());
+
+			ImGui::SeparatorText("Text");
+			ImGui::Text(std::format("inputData:\n{}", inputData).c_str());
+			
+			std::string finalText{};
+			for (const auto& str : redoBuffer)
+			{
+				finalText += str;
+			}
+			ImGui::Text(std::format("redoBuffer:\n{}", finalText).c_str());
+
+			ImGui::SeparatorText("Symbol Table");
+
+			for (const auto& [key, value] : symbolTable)
+			{
+				ImGui::Text(std::format("{}: {}", key, value).c_str());
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Objects", NULL))
+		{
+			ImGui::Indent();
+			for (size_t idx{ 0 }; idx < object.size(); ++idx)
+			{
+				const Object& obj{ object[idx] };
+
+				if (ImGui::CollapsingHeader((obj.getName() + "###" + std::to_string(obj.getID())).c_str(), NULL))
+				{
+					ImGui::SeparatorText("Numbers");
+					ImGui::Text(std::format("Index: {}", idx).c_str());
+					ImGui::Text(std::format("id: {}", obj.getID()).c_str());
+					ImGui::Text(std::format("offset: {}", obj.getOffset()).c_str());
+					ImGui::Text(std::format("vertexCount: {}", obj.getVertexCount()).c_str());
+					ImGui::Text(std::format("parentCount: {}", obj.getParentCount()).c_str());
+
+					ImGui::SeparatorText("Flags");
+					ImGui::Text(std::format("isMutable: {}", obj.isMutable()).c_str());
+					ImGui::Text(std::format("isSelected: {}", obj.isSelected()).c_str());
+
+					ImGui::SeparatorText("Other");
+					const std::array<int, 3>& pIDs{ obj.getParentIDs() };
+					ImGui::Text(std::format("parentIDs: [{}, {}, {}]", pIDs[0], pIDs[1], pIDs[2]).c_str());
+				}
+			}
+			ImGui::Unindent();
+		}
+	}
+
+	ImGui::End();
 }

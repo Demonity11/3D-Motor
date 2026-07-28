@@ -160,6 +160,11 @@ int main()
 		ImGui::PopFont();
 		ImGui::End();
 
+		if (Context::debugWindow)
+		{
+			debugWindow();
+		}
+
 		ImGui::Render();
 
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -248,8 +253,8 @@ void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	Context::fov -= static_cast<float>(yoffset) * 1.3f;
 
-	if (Context::fov < 1.0f)
-		Context::fov = 1.0f;
+	if (Context::fov < 25.0f)
+		Context::fov = 25.0f;
 	if (Context::fov > 45.0f)
 		Context::fov = 45.0f;
 }

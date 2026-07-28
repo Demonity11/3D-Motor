@@ -50,6 +50,8 @@ namespace Context
 	extern bool isEnterPressed;
 	extern bool leftClickPressed;
 
+	extern bool debugWindow;
+
 	extern std::vector<float> vertexData;
 	// Objects conteiner
 	extern std::vector<Object> object;
@@ -80,6 +82,7 @@ namespace Context
 	inline float defaultToastDuration{ 5.0f };
 
 	extern std::string inputData;
+	extern std::vector<std::string> redoBuffer;
 }
 
 #endif

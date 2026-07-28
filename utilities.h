@@ -47,8 +47,10 @@ void resetScene();
 bool loadSceneFromFile(const std::string& filename);
 
 int evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag);
-
 void updateInputData(const Object& updatedObj);
+void undo();
+void pushRedoBuffer(const std::string& lastInput);
+void redo();
 
 bool projectWorldToScreen
 (
