@@ -173,8 +173,6 @@ int main()
 		glfwPollEvents();
 	}
 
-	//writeFile("bbb.geo", Context::inputData);
-
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();

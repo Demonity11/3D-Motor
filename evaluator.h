@@ -17,7 +17,7 @@ auto convertSVToFloat(std::string_view sv)			-> std::optional<float>;
 
 auto evaluator(const std::vector<Node>& nodes, const std::vector<Object>& object, int nodeIdx = 0)					-> RuntimeValue;
 
-auto evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node)										-> RuntimeValue;
+auto evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)		-> RuntimeValue;
 auto evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)	-> RuntimeValue;
 auto evaluateCrossFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)		-> RuntimeValue;
 auto evaluateSegmentFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)	-> RuntimeValue;

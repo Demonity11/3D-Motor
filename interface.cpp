@@ -379,6 +379,7 @@ struct AutocompleteContext
 	bool autoCloseParen{ false };
 	bool skipClosingParen{ false };
 
+	const char* buffer{ nullptr };
 	std::string textToInject{};
 	int replaceStart{ 0 };
 	int replaceLength{ 0 };
@@ -399,7 +400,12 @@ int AutocompleteCallback(ImGuiInputTextCallbackData* data)
 			return 0;
 		}
 
-		if (data->EventChar == ')' && data->CursorPos < data->BufTextLen && data->Buf[data->CursorPos] == ')')
+		std::cout << "data->EventChar: " << static_cast<unsigned char>(data->EventChar) << "\n";
+		std::cout << "data->CursorPos: " << data->CursorPos << "\n";
+		std::cout << "data->BufTextLen: " << data->BufTextLen << "\n";
+		std::cout << "data->BufSize: " << data->BufSize << "\n\n";
+
+		if (data->EventChar == ')' && ctx->buffer && ctx->buffer[data->CursorPos] == ')')
 		{
 			ctx->skipClosingParen = true;
 			return 1; 
@@ -612,6 +618,7 @@ void getUserInput(std::vector<Object>& object)
 	}
 
 	const char* example{ "E.g.: var = Point(1,1,1)" };
+	context.buffer = inputBuffer;
 
 	pushErrorStyle(diag);
 	if (!diag)
@@ -1005,7 +1012,10 @@ void showVariables(std::vector<Object>& object)
 			bool colorChanged{ ImGui::IsItemDeactivatedAfterEdit() };
 
 			if (valuesChanged || colorChanged) // saves the changes
+			{
 				updateObject(static_cast<int>(i), obj);
+				updateInputData(obj);
+			}
 
 			std::string deleteText{ "Delete###" + std::to_string(obj.getID()) };
 
@@ -1533,6 +1543,8 @@ void debugWindow()
 	{
 		if (ImGui::CollapsingHeader("Context", NULL))
 		{
+			ImGui::Indent();
+
 			ImGui::SeparatorText("Flags");
 			ImGui::Text(std::format("isPressingRightClick: {}", isPressingRightClick).c_str());
 			ImGui::Text(std::format("isFirstMouse: {}", isFirstMouse).c_str());
@@ -1565,11 +1577,17 @@ void debugWindow()
 			{
 				ImGui::Text(std::format("{}: {}", key, value).c_str());
 			}
+
+			ImGui::Unindent();
 		}
 
 		if (ImGui::CollapsingHeader("Objects", NULL))
 		{
 			ImGui::Indent();
+
+			ImGui::Text(std::format("Object size: {}", object.size()).c_str());
+			ImGui::SeparatorText("Variables");
+
 			for (size_t idx{ 0 }; idx < object.size(); ++idx)
 			{
 				const Object& obj{ object[idx] };

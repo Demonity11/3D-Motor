@@ -24,6 +24,7 @@ auto scanForIdenticalObject(Object::Type type, const RuntimeValue& components, c
 auto compareRuntimeValue(Object::Type type, const RuntimeValue& components1, const RuntimeValue& components2)						 -> bool;
 auto searchObjectByID(int id, const std::vector<Object>& objectRef)																	 -> int;
 auto searchObjectIndexByName(const std::string& objName, const std::vector<Object>& object)											 -> int;
+int searchObjectIndexByName(const std::string_view objName, const std::vector<Object>& object);
 auto rebuildObjectFromParents(Object& obj, const std::vector<Object>& object)														 -> bool;
 void rebuildScene(std::vector<Object>& object, std::vector<float>& vertexData);
 auto updateObject(int objIndex, const Object& newObj)																				 -> void;

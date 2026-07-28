@@ -80,7 +80,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
 
         if (node.content == "Point")
         {
-            return evaluatePointFunc(args, node);
+            return evaluatePointFunc(args, node, nodes);
         }
         else if (node.content == "Vector")
         {
@@ -118,7 +118,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
 
     else if (node.type == Node::Variable)
     {
-        int objIdx{ searchObjectIndexByName(std::string(node.content), object) };
+        int objIdx{ searchObjectIndexByName(node.content, object) };
         if (objIdx == -1)
         {
             return RuntimeError
@@ -211,21 +211,40 @@ void printRuntimeValue(const RuntimeValue& value)
         }, value);
 }
 
-RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node)
+RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)
 {
-    if (args.size() == 3 &&
-        std::holds_alternative<float>(args[0]) &&
-        std::holds_alternative<float>(args[1]) &&
-        std::holds_alternative<float>(args[2])
-        )
+    const std::array<int, 3>& cIdx{ node.children };
+
+    if (args.size() == 3)
     {
-        float x{ std::get<float>(args[0]) };
-        float y{ std::get<float>(args[1]) };
-        float z{ std::get<float>(args[2]) };
+        if (std::holds_alternative<float>(args[0]) &&
+            std::holds_alternative<float>(args[1]) &&
+            std::holds_alternative<float>(args[2]))
+        {
+            float x{ std::get<float>(args[0]) };
+            float y{ std::get<float>(args[1]) };
+            float z{ std::get<float>(args[2]) };
 
-        glm::vec3 point{ x, y, z };
+            glm::vec3 point{ x, y, z };
 
-        return point;
+            return point;
+        }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+        const Object::Type t2{ deduceTypeByIdentifierName(nodes[cIdx[2]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Point accepts (Number, Number, Number) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ", " +
+            getStringFunctionType(t2) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     return Context::RuntimeError
@@ -255,6 +274,18 @@ RuntimeValue evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Nod
 
             return vector;
         }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Vector accepts (Point) argument, (" +
+            getStringFunctionType(t0) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     else if (args.size() == 2)
@@ -271,6 +302,20 @@ RuntimeValue evaluateVectorFunc(const std::vector<RuntimeValue>& args, const Nod
 
             return vector;
         }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Vector accepts (Point, Point) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     return Context::RuntimeError
@@ -287,23 +332,39 @@ RuntimeValue evaluateCrossFunc(const std::vector<RuntimeValue>& args, const Node
 {
     const std::array<int, 3>& cIdx{ node.children };
 
-    if (args.size() == 2 && 
-        std::holds_alternative<Eval::Vector>(args[0]) &&
-        std::holds_alternative<Eval::Vector>(args[1]))
+    if (args.size() == 2)
     {
-        const Eval::Vector& u{ std::get<Eval::Vector>(args[0]) };
-        const Eval::Vector& v{ std::get<Eval::Vector>(args[1]) };
-
-        Eval::Vector cross
+        if (std::holds_alternative<Eval::Vector>(args[0]) &&
+            std::holds_alternative<Eval::Vector>(args[1]))
         {
-            glm::vec3{ 0.0f, 0.0f, 0.0f },
-            glm::cross(u.head - u.origin, v.head - v.origin)
+            const Eval::Vector& u{ std::get<Eval::Vector>(args[0]) };
+            const Eval::Vector& v{ std::get<Eval::Vector>(args[1]) };
+
+            Eval::Vector cross
+            {
+                glm::vec3{ 0.0f, 0.0f, 0.0f },
+                glm::cross(u.head - u.origin, v.head - v.origin)
+            };
+
+            cross.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+            cross.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+            return cross;
+        }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Cross accepts (Vector, Vector) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
         };
-
-        cross.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-        cross.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
-
-        return cross;
     }
 
     return Context::RuntimeError
@@ -334,6 +395,20 @@ RuntimeValue evaluateSegmentFunc(const std::vector<RuntimeValue>& args, const No
 
             return segment;
         }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Segment accepts (Point, Point) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     return Context::RuntimeError
@@ -350,39 +425,56 @@ RuntimeValue evaluateLineFunc(const std::vector<RuntimeValue>& args, const Node&
 {
     const std::array<int, 3>& cIdx{ node.children };
 
-    if (args.size() == 2 && std::holds_alternative<Eval::Vector>(args[1]))
+    if (args.size() == 2)
     {
-        auto p{ extractPoint(args[0]) };
-
-        if (p)
+        if (std::holds_alternative<Eval::Vector>(args[1]))
         {
-            Eval::Vector vector{ std::get<Eval::Vector>(args[1]) };
+            auto p{ extractPoint(args[0]) };
 
-            Eval::Line line{ *p, vector.origin, vector.head };
+            if (p)
+            {
+                Eval::Vector vector{ std::get<Eval::Vector>(args[1]) };
 
-            line.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            line.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+                Eval::Line line{ *p, vector.origin, vector.head };
 
-            return line;
+                line.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                line.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return line;
+            }
         }
-    }
 
-    else if (args.size() == 2 && (std::holds_alternative<glm::vec3>(args[1]) || std::holds_alternative<Eval::IPoint>(args[1])))
-    {
-        auto p0{ extractPoint(args[0]) };
-        auto p1{ extractPoint(args[1]) };
-
-        if (p0 && p1)
+        else if (std::holds_alternative<glm::vec3>(args[1]) || std::holds_alternative<Eval::IPoint>(args[1]))
         {
-            Eval::Vector vector{ *p0, *p1 };
+            auto p0{ extractPoint(args[0]) };
+            auto p1{ extractPoint(args[1]) };
 
-            Eval::Line line{ *p0, vector.origin, vector.head };
+            if (p0 && p1)
+            {
+                Eval::Vector vector{ *p0, *p1 };
 
-            line.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            line.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+                Eval::Line line{ *p0, vector.origin, vector.head };
 
-            return line;
+                line.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                line.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return line;
+            }
         }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Line accepts (Point, Vector), or (Point, Point) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     return Context::RuntimeError
@@ -399,21 +491,38 @@ RuntimeValue evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node
 {
     const std::array<int, 3>& cIdx{ node.children };
 
-    if (args.size() == 2 && std::holds_alternative<Eval::Vector>(args[1]))
+    if (args.size() == 2)
     {
-        auto p{ extractPoint(args[0]) };
-
-        if (p)
+        if (std::holds_alternative<Eval::Vector>(args[1]))
         {
-            Eval::Vector vector{ std::get<Eval::Vector>(args[1]) };
+            auto p{ extractPoint(args[0]) };
 
-            Eval::Plane plane{ *p, vector.origin, vector.head };
+            if (p)
+            {
+                Eval::Vector vector{ std::get<Eval::Vector>(args[1]) };
 
-            plane.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            plane.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+                Eval::Plane plane{ *p, vector.origin, vector.head };
 
-            return plane;
+                plane.pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                plane.pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return plane;
+            }
         }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Plane accepts (Point, Vector) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     else if (args.size() == 3)
@@ -460,6 +569,22 @@ RuntimeValue evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node
 
             return plane;
         }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+        const Object::Type t2{ deduceTypeByIdentifierName(nodes[cIdx[2]].content) };
+
+        return Context::RuntimeError
+        {
+            "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
+            "Plane accepts (Point, Point, Point) arguments, (" +
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ", " +
+            getStringFunctionType(t2) + ") given.",
+            Context::ErrorSeverity::Error,
+            node.charPosition + node.content.length(),
+            1
+        };
     }
 
     return Context::RuntimeError
@@ -488,90 +613,81 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const 
         };
     }
 
-    if (args.size() == 2 &&
-        std::holds_alternative<Eval::Line>(args[0]) &&
-        std::holds_alternative<Eval::Line>(args[1])
-        )
-    {
-        RuntimeValue temp{ intersectionLineLine(std::get<Eval::Line>(args[0]), std::get<Eval::Line>(args[1])) };
-
-        if (Eval::IPoint* intersection{ std::get_if<Eval::IPoint>(&temp) })
-        {
-            intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
-
-            return *intersection;
-        }
-
-        return temp;
-    }
-
-    else if (args.size() == 2 &&
-        std::holds_alternative<Eval::Line>(args[0]) &&
-        std::holds_alternative<Eval::Plane>(args[1])
-        )
-    {
-        RuntimeValue temp{ intersectionLinePlane(std::get<Eval::Line>(args[0]), std::get<Eval::Plane>(args[1])) };
-
-        if (Eval::IPoint* intersection{ std::get_if<Eval::IPoint>(&temp) })
-        {
-            intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
-
-            return *intersection;
-        }
-
-        return temp;
-    }
-
-    else if (args.size() == 2 &&
-        std::holds_alternative<Eval::Plane>(args[0]) &&
-        std::holds_alternative<Eval::Line>(args[1])
-        )
-    {
-        RuntimeValue temp{ intersectionLinePlane(std::get<Eval::Line>(args[1]), std::get<Eval::Plane>(args[0])) };
-
-        if (Eval::IPoint* intersection{ std::get_if<Eval::IPoint>(&temp) })
-        {
-            intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
-
-            return *intersection;
-        }
-
-        return temp;
-    }
-
-    else if (args.size() == 2 &&
-        std::holds_alternative<Eval::Plane>(args[0]) &&
-        std::holds_alternative<Eval::Plane>(args[1])
-        )
-    {
-        RuntimeValue temp{ intersectionPlanePlane(std::get<Eval::Plane>(args[0]), std::get<Eval::Plane>(args[1])) };
-
-        if (Eval::ILine* intersection{ std::get_if<Eval::ILine>(&temp) })
-        {
-            intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
-            intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
-
-            return *intersection;
-        }
-
-        return temp;
-    }
-
     if (args.size() == 2)
     {
-        const Object::Type pType0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
-        const Object::Type pType1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+        if (std::holds_alternative<Eval::Line>(args[0]) &&
+            std::holds_alternative<Eval::Line>(args[1]))
+        {
+            RuntimeValue temp{ intersectionLineLine(std::get<Eval::Line>(args[0]), std::get<Eval::Line>(args[1])) };
 
-        const std::string strType0{ getStringFunctionType(pType0) };
-        const std::string strType1{ getStringFunctionType(pType1) };
+            if (Eval::IPoint * intersection{ std::get_if<Eval::IPoint>(&temp) })
+            {
+                intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return *intersection;
+            }
+
+            return temp;
+        }
+
+        else if (std::holds_alternative<Eval::Line>(args[0]) &&
+                 std::holds_alternative<Eval::Plane>(args[1]))
+        {
+            RuntimeValue temp{ intersectionLinePlane(std::get<Eval::Line>(args[0]), std::get<Eval::Plane>(args[1])) };
+
+            if (Eval::IPoint * intersection{ std::get_if<Eval::IPoint>(&temp) })
+            {
+                intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return *intersection;
+            }
+
+            return temp;
+        }
+
+        else if (std::holds_alternative<Eval::Plane>(args[0]) &&
+                 std::holds_alternative<Eval::Line>(args[1]))
+        {
+            RuntimeValue temp{ intersectionLinePlane(std::get<Eval::Line>(args[1]), std::get<Eval::Plane>(args[0])) };
+
+            if (Eval::IPoint * intersection{ std::get_if<Eval::IPoint>(&temp) })
+            {
+                intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return *intersection;
+            }
+
+            return temp;
+        }
+
+        else if (std::holds_alternative<Eval::Plane>(args[0]) &&
+                 std::holds_alternative<Eval::Plane>(args[1]))
+        {
+            RuntimeValue temp{ intersectionPlanePlane(std::get<Eval::Plane>(args[0]), std::get<Eval::Plane>(args[1])) };
+
+            if (Eval::ILine* intersection{ std::get_if<Eval::ILine>(&temp) })
+            {
+                intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
+                intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
+
+                return *intersection;
+            }
+
+            return temp;
+        }
+
+        const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+        const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
 
         return Context::RuntimeError
         {
             "Semantics Error at col " + std::to_string(node.charPosition + node.content.length() + 1) + ": "
-            "Intersect accepts (Line, Line), (Line, Plane),\n(Plane, Plane) arguments, (" + strType0 + ", " + strType1 + ") given.",
+            "Intersect accepts (Line, Line), (Line, Plane), or\n(Plane, Plane) arguments, (" + 
+            getStringFunctionType(t0) + ", " +
+            getStringFunctionType(t1) + ") given.",
             Context::ErrorSeverity::Error,
             node.charPosition + node.content.length(),
             1
@@ -682,12 +798,17 @@ Object::Type deduceTypeByIdentifierName(std::string_view func)
     else if (func == "Plane") return Object::Plane;
     else
     {
-        int idx{ searchObjectIndexByName(std::string(func), Context::object) };
+        int idx{ searchObjectIndexByName(func, Context::object) };
 
         if (idx >= 0)
         {
             return Context::object[idx].getType();
         }
+    }
+
+    if (convertSVToFloat(func))
+    {
+        return Object::Number;
     }
 
     return Object::Null;
@@ -703,7 +824,7 @@ std::array<int, 3> findParentsIDs(const std::vector<Node>& nodes)
     {
         if (childrenIdx[i] != -1)
         {
-            int idx{ searchObjectIndexByName(std::string(nodes[childrenIdx[i]].content), Context::object) };
+            int idx{ searchObjectIndexByName(nodes[childrenIdx[i]].content, Context::object) };
 
             if (idx >= 0) pIDs[i] = Context::object[idx].getID();
         }

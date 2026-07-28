@@ -55,6 +55,19 @@ int searchObjectIndexByName(const std::string& objName, const std::vector<Object
 	return -1;
 }
 
+int searchObjectIndexByName(const std::string_view objName, const std::vector<Object>& object)
+{
+	for (const auto& [name, idx] : Context::symbolTable)
+	{
+		if (objName == name)
+		{
+			return static_cast<int>(idx);
+		}
+	}
+
+	return -1;
+}
+
 // return the object's index if it exists or return -1 if not
 int searchObjectByID(int id, const std::vector<Object>& objectRef)
 {
@@ -214,7 +227,6 @@ void updateObject(int objIndex, const Object& newObj)
 
 	softResetScene();
 	rebuildScene(object, vertexData);
-	updateInputData(newObj);
 }
 
 void rebuildScene(std::vector<Object>& object, std::vector<float>& vertexData)
@@ -1640,7 +1652,7 @@ int evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
 			return -1;
 		}
 
-		int idx{ searchObjectIndexByName(std::string(nodes[1].content), object) };
+		int idx{ searchObjectIndexByName(nodes[1].content, object) };
 
 		if (idx >= 0)
 		{
