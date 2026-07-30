@@ -97,6 +97,7 @@ int main()
 
 		// render ImGui here
 		ImGui::ShowDemoWindow();
+		undoRedoShortcut();
 
 		ImGui::PushFont(Context::spaceFont, 16.0f);
 		ImGui::Begin("InputWindow", NULL, ImGuiWindowFlags_MenuBar);

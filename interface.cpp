@@ -324,7 +324,6 @@ void menuBar()
 		static char inputBuf[20]{};
 
 		bool enterPressed{ ImGui::InputTextWithHint("File name", "Enter file name (e.g.: banana)", inputBuf, sizeof(inputBuf), ImGuiInputTextFlags_EnterReturnsTrue) };
-		//ImGui::SetKeyboardFocusHere(-1);
 
 		const std::string filename{ inputBuf };
 
@@ -399,11 +398,6 @@ int AutocompleteCallback(ImGuiInputTextCallbackData* data)
 			ctx->autoCloseParen = true;
 			return 0;
 		}
-
-		std::cout << "data->EventChar: " << static_cast<unsigned char>(data->EventChar) << "\n";
-		std::cout << "data->CursorPos: " << data->CursorPos << "\n";
-		std::cout << "data->BufTextLen: " << data->BufTextLen << "\n";
-		std::cout << "data->BufSize: " << data->BufSize << "\n\n";
 
 		if (data->EventChar == ')' && ctx->buffer && ctx->buffer[data->CursorPos] == ')')
 		{
@@ -958,8 +952,6 @@ void showVariables(std::vector<Object>& object)
 	{
 		Object& obj{ object[i] };
 
-		std::string headerText{ obj.getName() + ": " + getExpression(obj, object) + "###" + obj.getName() };
-
 		const int currentID{ obj.getID() };
 		const int currentIndex{ static_cast<int>(i) };
 
@@ -998,15 +990,24 @@ void showVariables(std::vector<Object>& object)
 			}
 		}
 
-		if (ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_None))
-		{
-			static ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_None;
+		const std::string headerText{ "##" + obj.getName() };
 
-			if (obj.getType() == Object::Plane || obj.getType() == Object::Line) 
+		bool isHeaderOpen{ ImGui::CollapsingHeader(headerText.c_str(), ImGuiTreeNodeFlags_None) };
+		
+		ImGui::SameLine();
+		ImGui::TextColored(ImColor{ 0, 80, 255, 255 }, obj.getName().c_str());
+
+		ImGui::SameLine();
+		ImGui::Text(std::format(": {}", getExpression(obj, object)).c_str());
+
+		if (isHeaderOpen)
+		{
+			if (obj.getType() == Object::Plane || obj.getType() == Object::Line)
 				ImGui::Text(getEquation(obj).c_str());
 
 			bool valuesChanged{ getObjectInputFloats(obj) };
 
+			static ImGuiColorEditFlags colorFlags = ImGuiColorEditFlags_None;
 			ImGui::ColorEdit4(("Color###" + obj.getName()).c_str(), obj.getColorPointer(), ImGuiColorEditFlags_Float | colorFlags);
 
 			bool colorChanged{ ImGui::IsItemDeactivatedAfterEdit() };
@@ -1457,21 +1458,7 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 				return;
 			}
 
-			else
-			{
-				Toast toast
-				{
-					"Variable Name Error",
-					"Variables must have more than one character. Using Default name '" + std::string(1, Context::objectSymbols[type]) + "'.",
-					ImColor{ 0, 0, 255, 255 },
-					Context::defaultToastDuration,
-					Context::defaultToastDuration
-				};
-
-				addToastNotification(toast);
-
-				objName = Context::objectSymbols[type]++;
-			}
+			objName = nameGen(type);
 		}
 
 		else
@@ -1495,7 +1482,7 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	else 
 	{
-		objName = Context::objectSymbols[type]++;
+		objName = nameGen(type);
 	}
 
 	unsigned int primitive{ Context::primitives[type] };

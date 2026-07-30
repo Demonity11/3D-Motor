@@ -52,6 +52,11 @@ void updateInputData(const Object& updatedObj);
 void undo();
 void pushRedoBuffer(const std::string& lastInput);
 void redo();
+void undoRedoShortcut();
+
+constexpr char getMaxSymbolForType(Object::Type type);
+constexpr const char* getPrefixForType(Object::Type type);
+std::string nameGen(Object::Type type);
 
 bool projectWorldToScreen
 (

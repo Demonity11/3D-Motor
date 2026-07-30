@@ -9,7 +9,7 @@
 
 std::ostream& operator<<(std::ostream& os, const glm::vec3& vec)
 {
-	os << vec.x << ", " << vec.y << ", " << vec.z;
+	os << std::setprecision(2) << vec.x << ", " << vec.y << ", " << vec.z;
 
 	return os;
 }
@@ -1877,6 +1877,10 @@ void redo()
 	{
 		input = redoBuffer.back();
 
+		if (!inputData.empty() && inputData.back() != '\n')
+		{
+			inputData += "\n";
+		}
 		inputData += redoBuffer.back();
 		redoBuffer.pop_back();
 	}
@@ -1924,4 +1928,80 @@ void redo()
 
 	Lexer::tokens.clear();
 	Parser::nodes.clear();
+}
+
+void undoRedoShortcut()
+{
+	if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal))
+	{
+		undo();
+	}
+
+	if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Y, ImGuiInputFlags_RouteGlobal) ||
+		ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiMod_Shift | ImGuiKey_Z, ImGuiInputFlags_RouteGlobal))
+	{
+		redo();
+	}
+}
+
+constexpr char getMaxSymbolForType(Object::Type type)
+{
+	switch (type)
+	{
+	case Object::Point:   return 'Z';
+	case Object::Vector:  return 'z';
+	case Object::Plane:   return 'q';
+	case Object::Line:    return 't';
+	case Object::Segment: return 'o';
+	default:              return 'z';
+	}
+}
+
+constexpr const char* getPrefixForType(Object::Type type)
+{
+	switch (type)
+	{
+	case Object::Point:   return "P";
+	case Object::Vector:  return "Vec";
+	case Object::Plane:   return "Pl";
+	case Object::Line:    return "L";
+	case Object::Segment: return "Seg";
+	default:              return "Obj";
+	}
+}
+
+std::string nameGen(Object::Type type)
+{
+	using Context::objectSymbols;
+
+	char currentSymbol{ objectSymbols[type] };
+	const char maxSymbol{ getMaxSymbolForType(type) };
+
+	if (currentSymbol <= maxSymbol)
+	{
+		std::string singleCharName(1, currentSymbol);
+
+		while (searchObjectIndexByName(singleCharName, Context::object) > 0 && currentSymbol <= maxSymbol)
+		{
+			++currentSymbol;
+			singleCharName = std::string(1, currentSymbol);
+		}
+
+		if (currentSymbol <= maxSymbol)
+		{
+			objectSymbols[type] = currentSymbol;
+			return singleCharName;
+		}
+	}
+
+	const std::string prefix{ getPrefixForType(type) };
+	int counter{ 1 };
+	std::string candidateName{};
+
+	do
+	{
+		candidateName = prefix + "_" + std::to_string(counter++);
+	} while (searchObjectIndexByName(candidateName, Context::object) > 0);
+
+	return candidateName;
 }
