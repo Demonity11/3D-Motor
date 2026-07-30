@@ -43,7 +43,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
     else if (node.type == Node::Function)
     {
         bool funcExist{ false };
-        for (const auto& func : Context::function)
+        for (const auto& func : Context::funcOverloads)
         {
             if (node.content == func.name) 
             {

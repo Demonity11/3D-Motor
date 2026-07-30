@@ -56,7 +56,7 @@ namespace Context
 	// Objects conteiner
 	extern std::vector<Object> object;
 	// store FunctionArgs which has name, type, and expected arguments
-	extern std::vector<FunctionArgs> function;
+	extern std::vector<FunctionArgs> funcOverloads;
 	// store object symbols (default name)
 	extern std::map<Object::Type, char> objectSymbols;
 

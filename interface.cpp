@@ -637,7 +637,7 @@ void getUserInput(std::vector<Object>& object)
 	if (callCtx.insideCall && inputBuffer[0] != '\0' && !diag)
 	{
 		std::vector<FunctionArgs> overloads{};
-		for (const auto& func : Context::function)
+		for (const auto& func : Context::funcOverloads)
 		{
 			if (func.name == callCtx.functionName)
 				overloads.push_back(func);
@@ -709,7 +709,7 @@ void getUserInput(std::vector<Object>& object)
 
 	if (showDropdown && !activeToken.text.empty() && activePopupID == inputID)
 	{
-		for (const auto& func : Context::function)
+		for (const auto& func : Context::funcOverloads)
 		{
 			if (func.name.rfind(activeToken.text, 0) == 0 && func.name != activeToken.text)
 			{
@@ -777,7 +777,7 @@ void getUserInput(std::vector<Object>& object)
 		context.textWasEdited = false;
 		selectedIndex = -1;
 
-		processInput(inputBuffer, Context::function, object, diag);
+		processInput(inputBuffer, Context::funcOverloads, object, diag);
 		ImGui::SetKeyboardFocusHere(-1);
 	}
 
@@ -854,10 +854,15 @@ void pushErrorStyle(const std::optional<Context::RuntimeError>& diag)
 		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(255, 0, 0, 255));
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(50, 0, 0, 255));
 	}
-	else
+	else if (diag->severity == Context::Warning)
 	{
 		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(255, 255, 0, 255));
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(50, 50, 0, 255));
+	}
+	else if (diag->severity == Context::Info)
+	{
+		ImGui::PushStyleColor(ImGuiCol_Border, (ImVec4)ImColor(0, 50, 255, 255));
+		ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(0, 10, 50, 255));
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
@@ -873,7 +878,7 @@ void popErrorStyle(const std::optional<Context::RuntimeError>& diag)
 	ImGui::PopStyleColor(2);
 }
 
-void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag)
+void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOverloads, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag)
 {
 	std::string inputText{ inputBuffer };
 
@@ -998,7 +1003,10 @@ void showVariables(std::vector<Object>& object)
 		ImGui::TextColored(ImColor{ 0, 80, 255, 255 }, obj.getName().c_str());
 
 		ImGui::SameLine();
-		ImGui::Text(std::format(": {}", getExpression(obj, object)).c_str());
+		if (obj.getType() == Object::Plane || obj.getType() == Object::Line)
+			ImGui::Text(std::format(": {}", getEquation(obj)).c_str());
+		else
+			ImGui::Text(std::format(": {}", getExpression(obj, object)).c_str());
 
 		if (isHeaderOpen)
 		{

@@ -891,6 +891,7 @@ std::string getEquation(const Object& obj)
 		float d{ -normal.x * point.x - normal.y * point.y - normal.z * point.z };
 
 		std::stringstream ss{};
+		ss << std::setprecision(2);
 
 		std::string sign{};
 		auto normalPointer{ &normal[0] };
@@ -947,12 +948,13 @@ std::string getEquation(const Object& obj)
 
 	else if (type == Object::Line)
 	{
-		if (auto line{ extractLine(comp) })
+		if (std::optional<Eval::Line> line{ extractLine(comp) })
 		{
 			glm::vec3 point{ line->point };
 			glm::vec3 dVector{ line->dVecHead - line->dVecOrigin };
 
 			std::stringstream ss{};
+			ss << std::setprecision(2);
 
 			ss << "P = (" << point.x << ", " << point.y << ", " << point.z << ") + t(" << dVector.x << ", " << dVector.y << ", " << dVector.z << ")";
 
@@ -987,7 +989,13 @@ RuntimeValue intersectionLinePlane(const Eval::Line& line, const Eval::Plane& pl
 		if (glm::abs(glm::dot(planeNormal, line.point) + d) < epsilon)
 			return Eval::IPoint{ line.point };
 
-		return Context::RuntimeError{ "INTERSECT::DOES_NOT_EXIST\n" };
+		return Context::RuntimeError
+		{ 
+			"Info: Intersection does not exist.",
+			Context::ErrorSeverity::Info,
+			0,
+			0
+		};
 	}
 	else
 		t = -(glm::dot(planeNormal, line.point) + d) / divisor;

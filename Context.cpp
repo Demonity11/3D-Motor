@@ -29,7 +29,7 @@ namespace Context
 	std::vector<Object> object{};
 
 	// store FunctionArgs which has name, type, and expected arguments
-	std::vector<FunctionArgs> function
+	std::vector<FunctionArgs> funcOverloads
 	{
 		{"Point",     Object::Point,   {Object::Number, Object::Number, Object::Number} },
 		{"Vector",    Object::Vector,  {Object::Point,  Object::Point}				    },

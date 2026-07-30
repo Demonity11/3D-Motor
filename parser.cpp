@@ -86,7 +86,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
             tokens[tp + 3].type == Token::LParen)
         {
             targetName = std::string(token->lexeme);
-            for (const auto& func : Context::function)
+            for (const auto& func : Context::funcOverloads)
             {
                 if (*targetName == func.name)
                 {

@@ -31,7 +31,7 @@ void setupCustomTheme();
 void menuBar();
 auto getUserInput(std::vector<Object>& object)																	       -> void;
 auto getObjectInputFloats(Object& obj)																				   -> bool;
-auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& function, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag) -> void;
+auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOverloads, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag) -> void;
 auto showVariables(std::vector<Object>& object)																	       -> void;
 
 void debugWindow();
