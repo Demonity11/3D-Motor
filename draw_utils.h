@@ -22,26 +22,38 @@
 struct GLFWwindow;
 
 // forward declarations for main.cpp
-auto vertexSpec(const std::vector<float>& vertices)		  -> void;
-auto updateBufferData(const std::vector<float>& vertices) -> void;
+auto vertexSpec(const std::vector<float>& vertices)														    -> void;
+auto updateBufferData(const std::vector<float>& vertices)												    -> void;
 
 // forward declarations for interface.cpp
-auto initializeImGui(GLFWwindow* window)																		       -> void;
-void setupCustomTheme();
-void menuBar();
-auto getUserInput(std::vector<Object>& object)																	       -> void;
-auto getObjectInputFloats(Object& obj)																				   -> bool;
-auto processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOverloads, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag) -> void;
-auto showVariables(std::vector<Object>& object)																	       -> void;
+auto initializeImGui(GLFWwindow* window)																	-> void;
+auto setupCustomTheme()																						-> void;
+auto menuBar()																								-> void;
+auto getUserInput(std::vector<Object>& object)													   	        -> void;
+auto getObjectInputFloats(Object& obj)																		-> bool;
+void processInput
+(
+	char inputBuffer[128], 
+	const std::vector<FunctionArgs>& funcOverloads, 
+	const std::vector<Object>& object, 
+	std::optional<Context::RuntimeError>& diag
+);
+auto showVariables(std::vector<Object>& object)														    	-> void;
 
-void debugWindow();
+auto debugWindow()																							-> void;
 
-void addToastNotification(const Toast& toast);
-void pushErrorStyle(const std::optional<Context::RuntimeError>& diag);
-void popErrorStyle(const std::optional<Context::RuntimeError>& diag);
+auto addToastNotification(const Toast& toast)																-> void;
+auto pushErrorStyle(const std::optional<Context::RuntimeError>& diag)										-> void;
+auto popErrorStyle(const std::optional<Context::RuntimeError>& diag)										-> void;
 
-auto generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)					  -> int;
-auto extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes, const std::optional<std::string>& targetName) -> void;
+auto generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)	-> int;
+void extractAndRegisterObject
+(
+	const RuntimeValue& evalObj, 
+	const std::vector<Object>& object, 
+	const std::vector<Node>& nodes, 
+	const std::optional<std::string>& targetName
+);
 
 void drawObjectLabels
 (

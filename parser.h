@@ -37,6 +37,6 @@ namespace Parser
 }
 
 auto parser(const std::vector<Token>& tokens, std::optional<Context::RuntimeError>& diag, size_t tp = 0) -> std::optional<ParseResult>;
-auto printNodes(const std::vector<Node>& nodes) -> void;
+auto printNodes(const std::vector<Node>& nodes)															 -> void;
 
 #endif

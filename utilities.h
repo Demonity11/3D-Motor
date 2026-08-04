@@ -24,41 +24,40 @@ auto scanForIdenticalObject(Object::Type type, const RuntimeValue& components, c
 auto compareRuntimeValue(Object::Type type, const RuntimeValue& components1, const RuntimeValue& components2)						 -> bool;
 auto searchObjectByID(int id, const std::vector<Object>& objectRef)																	 -> int;
 auto searchObjectIndexByName(const std::string& objName, const std::vector<Object>& object)											 -> int;
-int searchObjectIndexByName(const std::string_view objName, const std::vector<Object>& object);
+auto searchObjectIndexByName(const std::string_view objName, const std::vector<Object>& object)										 -> int;
 auto rebuildObjectFromParents(Object& obj, const std::vector<Object>& object)														 -> bool;
-void rebuildScene(std::vector<Object>& object, std::vector<float>& vertexData);
+auto rebuildScene(std::vector<Object>& object, std::vector<float>& vertexData)														 -> void;
 auto updateObject(int objIndex, const Object& newObj)																				 -> void;
-void purgeObjectAndDependents(int targetID, std::vector<Object>& object);
-void deleteObjectByID(int targetID, std::vector<Object>& object, std::vector<float>& vertexData);
+auto purgeObjectAndDependents(int targetID, std::vector<Object>& object)															 -> void;
+auto deleteObjectByID(int targetID, std::vector<Object>& object, std::vector<float>& vertexData)									 -> void;
 auto extractPName(const Object& obj)																								 -> std::string;
 auto testInput(const std::string& input)																							 -> std::vector<std::string>;
 
-auto getSelectedObjectID(const glm::vec3& rayOrigin, const glm::vec3& rayDirection, std::vector<Object>& object) -> int;
-auto updateSelectedObjectColor(int objIndex, std::vector<Object>& object, std::vector<float>& vertexData)		 -> void;
+auto getSelectedObjectID(const glm::vec3& rayOrigin, const glm::vec3& rayDirection, std::vector<Object>& object)					 -> int;
+auto updateSelectedObjectColor(int objIndex, std::vector<Object>& object, std::vector<float>& vertexData)							 -> void;
 
-auto createObject(Object obj, int vCount, const RuntimeValue& comp, const glm::vec4& color, int pCount, const std::array<int, 3>& pIDs = { -1, -1, -1 }) -> size_t;
-auto createObject(Object obj, int vCount)																											     -> size_t;
+auto createObject(Object obj, int vCount)																							 -> size_t;
 
-auto duduceRuntimeValueType(const RuntimeValue& value) -> Object::Type;
-auto extractPoint(const RuntimeValue& val)			   -> std::optional<glm::vec3>;
-auto extractLine(const RuntimeValue& val)			   -> std::optional<Eval::Line>;
+auto duduceRuntimeValueType(const RuntimeValue& value)																				 -> Object::Type;
+auto extractPoint(const RuntimeValue& val)																							 -> std::optional<glm::vec3>;
+auto extractLine(const RuntimeValue& val)																							 -> std::optional<Eval::Line>;
 
-void softResetScene();
-void resetScene();
-bool loadSceneFromFile(const std::string& filename);
+auto softResetScene()																												 -> void;
+auto resetScene()																													 -> void;
+auto loadSceneFromFile(const std::string& filename)																					 -> bool;
 
-int evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag);
-void updateInputData(const Object& updatedObj);
-void undo();
-void pushRedoBuffer(const std::string& lastInput);
-void redo();
-void undoRedoShortcut();
+auto evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)																	 -> int;
+auto updateInputData(const Object& updatedObj)																						 -> void;
+auto undo()																															 -> void;
+auto pushRedoBuffer(const std::string& lastInput)																					 -> void;
+auto redo()																															 -> void;
+auto undoRedoShortcut()																												 -> void;
 
-float getDistanceToCamera(const glm::vec3& cameraPos, const Object& obj);
+auto getDistanceToCamera(const glm::vec3& cameraPos, const Object& obj)																 -> float;
 
 constexpr char getMaxSymbolForType(Object::Type type);
 constexpr const char* getPrefixForType(Object::Type type);
-std::string nameGen(Object::Type type);
+auto nameGen(Object::Type type)																										 -> std::string;
 
 bool projectWorldToScreen
 (

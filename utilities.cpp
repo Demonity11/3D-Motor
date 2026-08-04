@@ -85,35 +85,6 @@ int searchObjectByID(int id, const std::vector<Object>& objectRef)
 	return -1;
 }
 
-// creates a Object object
-size_t createObject(Object obj, int vCount, const RuntimeValue& comp, const glm::vec4& color, int pCount, const std::array<int, 3>& pIDs)
-{
-	int offset{ 0 };
-	int id{ Context::globalObjectIDCounter++ };
-
-	if (!Context::object.empty())
-	{
-		int previousIndex{ static_cast<int>(Context::object.size()) - 1 };
-		offset = Context::object[previousIndex].getOffset() + Context::object[previousIndex].getVertexCount();
-	}
-
-	obj.setID(id);
-	obj.setOffset(offset);
-	obj.setVertexCount(vCount);
-	obj.setParentCount(pCount);
-	obj.setComponents(comp);
-	obj.setColor(color);
-
-	if (pIDs[0] != -1)
-	{
-		obj.setParentIDs(pIDs);
-	}
-
-	Context::object.push_back(std::move(obj));
-
-	return Context::object.size() - 1;
-}
-
 size_t createObject(Object obj, int vCount)
 {
 	int offset{ 0 };
@@ -2113,20 +2084,7 @@ float getDistanceToCamera(const glm::vec3& cameraPos, const Object& obj)
 		const Eval::Plane& plane{ std::get<Eval::Plane>(comp) };
 
 		glm::vec3 point{ plane.point };
-		//glm::vec3 normalOrigin{ plane.normalOrigin };
-		//glm::vec3 normalHead{ plane.normalHead };
-
-		//normalOrigin *= scale;
-		//normalHead *= scale;
 		point *= scale;
-
-		//glm::vec3 planeNormal{ normalHead - normalOrigin };
-		//float d{ -glm::dot(planeNormal, point) };
-		//
-		//float planeNormalLen{ glm::length(planeNormal) };
-		//if (planeNormalLen < FLT_EPSILON) return -1.0f;
-
-		//float distance{ glm::abs(glm::dot(planeNormal, cameraPos) + d) / planeNormalLen };
 
 		float distance{ glm::length(cameraPos - point) };
 

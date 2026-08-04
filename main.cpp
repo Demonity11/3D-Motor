@@ -30,7 +30,7 @@ int main()
 {
 	constexpr int width{ 960 };
 	constexpr int height{ 540 };
-	std::string title{ "GeoGebra3D" };
+	std::string title{ "3[D] Motor" };
 
 	Window window{ width, height, title };
 	window.init();
@@ -78,29 +78,6 @@ int main()
 		shader.setMat4("model", model);
 
 		glBindVertexArray(Context::VAO);
-
-		//std::vector<TransparentItem> transparentQueue{};
-
-		//for (size_t i{ 0 }; i < Context::object.size(); ++i)
-		//{
-		//	const Object& obj{ Context::object[i] };
-
-		//	transparentQueue.push_back({ static_cast<int>(i), obj.getColor().w });
-		//}
-
-		//std::sort(transparentQueue.begin(), transparentQueue.end(),
-		//	[](const TransparentItem a, const TransparentItem b)
-		//	{
-		//		return a.alpha > b.alpha;
-		//	}
-		//);
-
-		//for (auto const& t : transparentQueue)
-		//{
-		//	const auto& obj{ Context::object[t.objIndex] };
-
-		//	glDrawArrays(obj.getPrimitive(), obj.getOffset(), obj.getVertexCount());
-		//}
 
 		std::vector<RenderItem> transparentQueue{};
 		transparentQueue.reserve(Context::object.size());
@@ -162,43 +139,6 @@ int main()
 
 		glDepthMask(GL_TRUE);
 
-		//std::vector<RenderItem> renderQueue{};
-		//renderQueue.reserve(Context::object.size());
-
-		//for (size_t i{ 0 }; i < Context::object.size(); ++i)
-		//{
-		//	const Object& obj{ Context::object[i] };
-		//	float distance{ getDistanceToCamera(Context::cameraPos, obj) };
-
-		//	if (distance < 0.0f) continue;
-
-		//	const float alpha{ obj.getColor().w };
-
-		//	renderQueue.emplace_back(RenderItem{ i, distance, alpha });
-
-		//	if (glm::abs(1.0f - alpha) < FLT_EPSILON) ++opaqueCounter;
-		//	else ++transparentCounter;
-		//}
-
-		//std::sort(renderQueue.begin(), renderQueue.end(),
-		//	[](const RenderItem& a, const RenderItem& b)
-		//	{
-		//		if (glm::abs(a.distance - b.distance) < FLT_EPSILON)
-		//		{
-		//			return a.alpha > b.alpha;
-		//		}
-
-		//		return a.distance > b.distance;
-		//	}
-		//);
-
-		//for (const auto& ri : renderQueue)
-		//{
-		//	const auto& obj{ Context::object[ri.objIndex] };
-
-		//	glDrawArrays(obj.getPrimitive(), obj.getOffset(), obj.getVertexCount());
-		//}
-
 		// render ImGui here
 		ImGui::ShowDemoWindow();
 		undoRedoShortcut();
@@ -248,15 +188,6 @@ int main()
 			
 			if (Context::selectedObjID == clickedID)
 			{
-				//if (clickedID >= 0)
-				//{
-				//	const Object& obj{ Context::object[searchObjectByID(Context::selectedObjID, Context::object)] };
-
-				//	float distance{ getDistanceToCamera(Context::cameraPos, obj) };
-
-				//	std::cout << "Distance from Camera = (" << Context::cameraPos << ") to Object(id=" << Context::selectedObjID << ") is equal to " << distance << "\n";
-				//}
-
 				Context::selectedObjID = -1; 
 			}
 			else

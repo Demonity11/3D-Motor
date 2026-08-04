@@ -6,9 +6,9 @@
 #include <vector>
 #include <iostream>
 
-std::vector<std::string> readFile(const std::string& filename);
-int writeFile(const std::string& filename, const std::string& data);
-int removeFile(const std::string& filename);
-bool validateFileName(const std::string& filename);
+auto readFile(const std::string& filename)							 -> std::vector<std::string>;
+auto writeFile(const std::string& filename, const std::string& data) -> int;
+auto removeFile(const std::string& filename)						 -> int;
+auto validateFileName(const std::string& filename)					 -> bool;
 
 #endif

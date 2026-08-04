@@ -1,77 +1,110 @@
-readme_content = """# GeoGebra3D
+# 3[D] Motor
 
-A high-performance, interactive 3D Geometric & Mathematical Visualization Engine built from scratch using Modern OpenGL and C++17. Designed as an educational CAD-like environment for real-time relational geometry rendering and vector calculation.
-
-## 🚀 Overview
-
-GeoGebra3D allows users to dynamically input, visualize, and manipulate mathematical primitives (Points, Vectors, Lines, and Planes) in a true 3D viewport. The engine interprets geometric entities not just as isolated graphic arrays, but as components of an interconnected relational graph, updating dependents in real-time upon parental modification.
+A high-performance, real-time 3D Geometric Evaluation & Rendering Engine built in Modern C++20 and OpenGL. Inspired by parametric geometric tools such as GeoGebra 3D, this project provides an interactive environment for dynamically defining, parsing, and rendering 3D spatial primitives.
 
 ---
 
-## 🛠️ Tech Stack & Dependencies
+## 🏛️ System Architecture
 
-The project is built entirely targeting the native Windows `x64` architecture, leveraging the following industry-standard low-level graphics and windowing libraries:
+The engine decouples user command processing from GPU graphics execution through a three-stage compiler frontend connected to a dual-pass rendering pipeline:
 
-* **Language:** C++17
-* **Graphics API:** Modern OpenGL (Core Profile).
-* **Windowing & Input:** GLFW (Window management and native raw mouse/keyboard callbacks).
-* **OpenGL Loading Library:** GLAD.
-* **Mathematics:** GLM (OpenGL Mathematics - header-only vector/matrix transformations).
-* **User Interface:** Dear ImGui (Immediate Mode GUI for variables and command input processing).
+```text
+ +------------------+     +-------------------+     +-------------------+     +-------------------+
+ |  ImGui Console   | --> | Lexical Analyzer  | --> | Recursive Parser  | --> |   AST Evaluator   |
+ |   Command Line   |     |    std::string    |     | std::vector<Node> |     |   RuntimeValue    |
+ +------------------+     +-------------------+     +-------------------+     +-------------------+
+                                                                                    |
+                                                                                    v
+ +------------------+     +-------------------+     +-------------------+     +-------------------+
+ |   GPU Shader     | <-- |  Dual-Pass Queue  | <-- | getDistanceToCam  | <-- | Global Context    |
+ | glDrawArrays Call|     | Opaque/Transparent|     | Primitive Distance|     | Context::object   |
+ +------------------+     +-------------------+     +-------------------+     +-------------------+
 
----
+```
 
-## 🏛️ Core Features
-
-* **3D Interactive Viewport:** Full spatial navigation governed by a custom virtual camera system using Euler angles (Yaw/Pitch) map-controlled via raw mouse deltas.
-* **Procedural Infinite Grid:** An infinite structural grid and explicit RGB coordinate axes rendered dynamically via heavy fragment-shader procedural mathematical computations per fragment.
-* **Dynamic Command Parser:** Real-time terminal string interpreter within the UI capable of evaluating complex multi-argument geometric functions (e.g., instantiation of lines from points, planes from point-normal configurations, and intersections).
-* **Relational Primitive Intersections:** Real-time geometric evaluation of line-plane intersections that continuously recalibrate coordinate values over runtime modifications.
-
----
-
-## 📐 Mathematical Underpinnings
-
-The core computational logic avoids external black-box solvers, performing explicit linear algebraic calculations directly on the CPU.
-
-### Real-Time Line-Plane Intersection
-The intersection point $P$ of a parametric line $P(t) = P_L + t \cdot \vec{v}$ and a general implicit plane $\pi: ax + by + cz + d = 0$ with normal vector $\vec{n} = (a, b, c)$ is deduced by injecting the parametric components into the plane equation and isolating the scalar parameter $t$:
-
-$$t = -\frac{\vec{n} \cdot P_L + d}{\vec{n} \cdot \vec{v}}$$
-
-Where:
-* $d = -(\vec{n} \cdot P_\pi)$, with $P_\pi$ representing the plane's anchoring point.
-* $\vec{v}$ represents the direction vector of the line.
-* $\vec{n}$ represents the normal vector of the plane.
-
-The engine intercepts singular conditions (**Edge Cases**): if the dot product in the denominator ($\vec{n} \cdot \vec{v}$) approaches zero ($\pm \epsilon$), the engine detects a parallel state, suppresses undefined floating-point execution, and gracefully flags the entity as invalid without halting the simulation loop.
+* **Lexical Analyzer (Lexer):** Scans command strings into tokens using non-allocating `std::string_view` slices while recording column offsets for exact diagnostic tracking.
+* **Recursive Descent Parser:** Constructs a contiguous Abstract Syntax Tree (AST) stored in cache-friendly arrays (`std::vector<Node>`), enforcing syntax rules and argument limits ($N \le 3$).
+* **AST Evaluator:** Recursively resolves types at runtime via polymorphic `std::variant` containers (`RuntimeValue`), executing vector algebra and handling geometric degeneracies.
+* **Dual-Pass Renderer:** Measures primitive distances relative to camera space, sorting objects into distinct opaque and transparent render queues to ensure blending accuracy.
 
 ---
 
-## 🏗️ Architectural Decisions & Low-Level Engineering
+## 🛠️ Key Engine Features
 
-### 1. State Isolation via Centralized Namespace Context
-To eliminate the architectural technical debt of loose global variables, the entire global state of the engine (including rendering tokens like VAO/VBO handles, vector buffers, and UI parsing structures) is encapsulated into a highly coordinated `Context` namespace.
-* **Compilation Decoupling:** Employs explicit `extern` linkage declarations inside headers and physical definitions inside localized compilation units (`.cpp`).
-* **Header-only Constants:** Utilizes modern C++17 `inline constexpr` modifiers for structural boundaries (e.g., parent IDs for literal expressions), collapsing the memory footprint to zero and allowing compile-time literal optimization.
+### 1. Embedded Scripting Engine & Diagnostic Feedback
 
-### 2. Directed Acyclic Graph (DAG) & Cascading Deletion
-Geometric relationships are managed via a strict Directed Acyclic Graph (DAG). Entities track their ancestors through explicit identification registries (`parentIDs`).
-* **Cascading Traversal:** Deleting a parent node triggers a deep recursive query across the entire vector container, systematically hunting down and purging orphaned child primitives.
-* **Memory Integrity Protection:** Engineered to resolve the classic C++ *Iterator Invalidation* trap during runtime `std::vector` mutations by executing multi-stage evaluation passes paired with a clean **Total Rebuild Pipeline**. The rendering engine subsequently clears vertex streams and streams fresh, contiguous bit blocks to the GPU VRAM via specialized `glBufferData` routines.
+* **Dynamic DSL Processing:** Evaluates complex geometric commands and variable bindings in real time.
+* **Column-Exact Error Reporting:** Highlights precise character offsets in the ImGui terminal for lexical, syntactic, or semantic type errors.
 
-### 3. Immediate-Mode UI Stack Stabilization
-Dynamic generation of text arrays and fields inside Dear ImGui routinely breaks input handling due to shifting frame states. The engine counters this by invoking ImGui's internal **ID Stack separation mechanism** via the unique `###` token. This locks down persistent structural keyboard focus indices inside the memory layout while leaving outward text labels free to update dynamically.
+### 2. Dual-Pass Transparency & OIT Mitigation
+
+To solve depth-buffer fighting and flickering when rendering overlapping $2\text{D}$ transparent planes ($\alpha = 0.2$):
+
+* **Opaque Pass ($\alpha = 1.0$):** Renders $0\text{D}$ points and $1\text{D}$ lines/vectors with Depth Testing enabled and `glDepthMask(GL_TRUE)`. Objects are sorted **Front-to-Back** to optimize GPU early-Z rejection.
+* **Transparent Pass ($\alpha < 1.0$):** Renders transparent planes sorted strictly **Back-to-Front** relative to camera distance with depth buffer writing disabled via `glDepthMask(GL_FALSE)`.
+
+### 3. Geometric Degeneracy & Orthogonalization
+
+* **Collinearity Handling:** When constructing a 3D plane from three points ($\text{Plane}(A, B, C)$), the engine evaluates vector alignment via dot products. If input vectors are collinear, it falls back to Gram-Schmidt orthogonalization to construct a stable orthogonal basis and normal vector.
+* **Topological Distance Metrics:** Custom distance evaluations adapt to primitive dimensionality ($0\text{D}$ point distance, $1\text{D}$ segment projection clamping, $1\text{D}$ infinite line cross-product height, and $2\text{D}$ plane mesh centroid metrics).
 
 ---
 
-## 🚀 How to Build
+## ⌨️ Command API Directory
 
-The workspace is organized as a native Visual Studio Solution.
+| Function Command | Parameter Signatures | Derived Geometric Type | Description |
+| --- | --- | --- | --- |
+| `Point` | `Point(x, y, z)` | `Point` ($0\text{D}$) | Creates a point literal at coordinates $(x, y, z)$. |
+| `Vector` | `Vector(P)` <br>
 
-### Prerequisites
-1. **Visual Studio 2022** (with the *Desktop development with C++* workload installed).
-2. Graphic hardware supporting at least **OpenGL 3.3 Core Profile**.
+<br> `Vector(P1, P2)` | `Vector` ($1\text{D}$) | Creates a directed vector from the origin to $P$, or spanning $P_1 \rightarrow P_2$. |
+| `Segment` | `Segment(P1, P2)` | `Segment` ($1\text{D}$) | Creates a bounded segment between points $P_1$ and $P_2$. |
+| `Line` | `Line(P, V)` <br>
 
-### Step-by-Step Compilation
-1. Clone the repository to your local directory:
+<br> `Line(P1, P2)` | `Line` ($1\text{D}$) | Creates an infinite line passing through $P$ along direction $V$ or connecting $P_1$ and $P_2$. |
+| `Plane` | `Plane(P, V)` <br>
+
+<br> `Plane(A, B, C)` | `Plane` ($2\text{D}$) | Constructs an infinite surface from a point and normal vector, or from 3 points. |
+| `Cross` | `Cross(V1, V2)` | `Vector` ($1\text{D}$) | Calculates the vector cross product $\mathbf{V}_1 \times \mathbf{V}_2$. |
+| `Intersect` | `Intersect(Obj1, Obj2)` | `Point` / `Line` | Evaluates analytic intersections between Line-Line, Line-Plane, or Plane-Plane. |
+
+---
+
+## 📸 Media & Demos
+
+### Main Interface
+
+*(Screenshot placeholder: Interactive 3D Viewport with Coordinate Axes and ImGui Terminal)*
+
+### Interactive Command Console & Real-Time Parsing
+
+*(GIF placeholder: Executing script commands, defining variables, and live visual update)*
+
+### Plane Intersections & Transparency Rendering
+
+*(GIF/Screenshot placeholder: Multi-plane blending with Z-buffer stability)*
+
+---
+
+## 🏗️ Building the Project
+
+*(This section will be updated with build instructions, application icons, and platform-specific configurations in an upcoming project release).*
+
+---
+
+## ✍️ Author's Note
+
+Building **3[D] Motor** has been an incredible milestone in my journey as a Computer Science student aiming to specialize in graphics programming and software architecture.
+
+Moving from foundational C++ concepts to designing a custom language interpreter and an OpenGL renderer forced me to connect mathematical theory with low-level computing. Implementing linear algebra concepts, working out spatial projections, handling transparency sorting, and building an interactive frontend with Dear ImGui presented non-trivial engineering challenges that significantly deepened my understanding of systems architecture.
+
+There is always more to refine and build, and I am excited to continue expanding my knowledge in low-level graphics API development.
+
+---
+
+## 📚 Credits & References
+
+* **LearnCPP.com:** Fundamental C++ techniques and core modern language paradigms.
+* **3D Math Primer for Graphics and Game Development:** Mathematical intuition for vector algebra, projections, and spatial transformations.
+* **GeoGebra 3D:** Functional inspiration for interactive parametric geometric modeling tools.
+* **Dear ImGui & GLFW:** GUI framework and windowing abstraction layers.

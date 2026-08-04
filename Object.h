@@ -25,12 +25,6 @@ public:
 	static constexpr Type Variable = ObjectType::Variable;
 	static constexpr Type Number = ObjectType::Number;
 
-	Object(std::string name, Type type, unsigned int primitive)
-		: m_name{ name }
-		, m_type { type }
-		, m_primitive{ primitive }
-	{ }
-
 	Object
 	(
 		std::string name, 
@@ -82,7 +76,6 @@ public:
 	void setParentIDs(const std::array<int, 3>& parentIDs)   { m_parentIDs = parentIDs; }
 	void setParentCount(uint8_t parentCount)				 { m_parentCount = parentCount; }
 
-	//float* getComponentsPointer() { return m_components.data(); }
 	float* getColorPointer()	  { return &m_color[0]; }
 	RuntimeValue& getComponents() { return m_components; }
 
