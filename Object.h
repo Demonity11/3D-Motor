@@ -38,8 +38,8 @@ public:
 		unsigned int primitive, 
 		const RuntimeValue& components, 
 		const glm::vec4& color, 
-		const std::array<int, 3>& pIDs, 
-		int pCount
+		const std::array<int, 3>& pIDs = {-1, -1, -1},
+		int pCount = 0
 	)
 		: m_name{ name }
 		, m_type{ type }

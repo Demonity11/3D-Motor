@@ -5,6 +5,7 @@
 #include <string_view>
 #include <string>
 #include <optional>
+#include <iostream>
 
 namespace Context
 {
@@ -21,6 +22,11 @@ namespace Context
 		ErrorSeverity severity{ ErrorSeverity::Error };
 		size_t charPosition{ 0 };
 		size_t length{ 1 };
+
+		void print() const
+		{
+			std::cout << message << "\n";
+		}
 	};
 }
 

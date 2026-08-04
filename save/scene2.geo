@@ -1,0 +1,6 @@
+u = Vector(Point(0, 1, 0))
+A = Point(0, 2, 0)
+B = Point(0, -2, 0)
+p = Plane(A, u)
+q = Plane(B, u)
+Pl_1 = Plane(A, B, Point(3,-1,2))

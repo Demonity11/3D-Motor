@@ -182,7 +182,7 @@ void deleteObjectByID(int targetID, std::vector<Object>& object, std::vector<flo
 	softResetScene();
 	rebuildScene(object, vertexData);
 
-	Context::inputData += "Delete(" + objName + ")\n";
+	//Context::inputData += "Delete(" + objName + ")\n";
 }
 
 // function to update objects
@@ -342,7 +342,21 @@ void updateInputData(const Object& obj)
 
 			if (pIDs[1] >= 0)
 			{
-				ss << getObjectNameByID(pIDs[1]) << ")";
+				int idx{ searchObjectByID(pIDs[1], object) };
+
+				if (idx >= 0)
+				{
+					const Object& pType1{ object[idx] };
+
+					if (pType1.getType() == Object::Vector)
+					{
+						ss << pType1.getName() << ")";
+					}
+					else
+					{
+						ss << "Vector(Point(" << plane.normalOrigin << "), Point(" << plane.normalHead << ")))";
+					}
+				}
 			}
 			else
 			{
@@ -1050,7 +1064,13 @@ RuntimeValue intersectionLineLine(const Eval::Line& lineS, const Eval::Line& lin
 	auto crossDot{ glm::dot(cross, w0) };
 
 	if (glm::abs(crossDot) >= epsilon)
-		return Context::RuntimeError{ "INTERSECT::DOES_NOT_EXIST\n" }; // intersection doesn't exist
+		return Context::RuntimeError
+		{
+			"Info: Intersection does not exist.",
+			Context::ErrorSeverity::Info,
+			0,
+			0
+		};
 
 	float a{ glm::dot(dVecS, dVecS) };
 	float b{ glm::dot(dVecS, dVecT) };
@@ -1098,11 +1118,23 @@ RuntimeValue intersectionPlanePlane(const Eval::Plane& plane1, const Eval::Plane
 
 	if (isSuperimposed)
 	{
-		return Context::RuntimeError{ "INTERSECT::THE_PLANES_ARE_THE_SAME\n" };
+		return Context::RuntimeError
+		{
+			"Info: Intersection does not exist, the planes are the same.",
+			Context::ErrorSeverity::Info,
+			0,
+			0
+		};
 	}
 	else if (isParallel)
 	{
-		return Context::RuntimeError{ "INTERSECT::DOES_NOT_EXIST\n" };
+		return Context::RuntimeError
+		{
+			"Info: Intersection does not exist.",
+			Context::ErrorSeverity::Info,
+			0,
+			0
+		};
 	}
 
 	if (glm::abs(dVec.x) >= glm::abs(dVec.y) && glm::abs(dVec.x) >= glm::abs(dVec.z))
@@ -1185,8 +1217,6 @@ bool recalculateIntersect(Object& obj, const std::vector<Object>& object)
 
 	if (type == Object::Line && std::holds_alternative<Eval::ILine>(obj.getComponents()))
 	{
-		//Intersect intersect{ gatherPlaneLine(obj, object) };
-
 		if (pIDs[0] >= 0 && pIDs[1] >= 0)
 		{
 			int idx0{ searchObjectByID(pIDs[0], object) };
@@ -1204,13 +1234,6 @@ bool recalculateIntersect(Object& obj, const std::vector<Object>& object)
 			{
 				return false;
 			}
-
-			//constexpr float epsilon{ 0.001f };
-			//if (glm::length(intersection.line.dVecHead - intersection.line.dVecOrigin) < epsilon)
-			//{
-			//	std::cerr << "Intersection doesn't exist.\n";
-			//	return false;
-			//}
 
 			obj.setComponents(std::get<Eval::ILine>(temp));
 		}
@@ -1235,14 +1258,6 @@ bool recalculateIntersect(Object& obj, const std::vector<Object>& object)
 			{
 				return false;
 			}
-
-			//const Eval::IPoint& intersection{ std::get<Eval::IPoint>(newIntersection) };
-
-			//if (intersection.point == glm::vec3(-9999.0f, -9999.0f, -9999.0f))
-			//{
-			//	std::cerr << "Intersection doesn't exist.\n";
-			//	return false;
-			//}
 
 			obj.setComponents(std::get<Eval::IPoint>(temp));
 		}
@@ -1436,7 +1451,6 @@ int getSelectedObjectID(const glm::vec3& rayOrigin, const glm::vec3& rayDirectio
 
 		else if (type == Object::Plane && std::holds_alternative<Eval::Plane>(comp))
 		{
-			//std::array<glm::vec3, 3> plane{ assemblyPlane(obj, object) };
 			const Eval::Plane& plane{ std::get<Eval::Plane>(comp) };
 
 			glm::vec3 point{ plane.point };
@@ -1665,7 +1679,8 @@ int evaluateDeleteFunc(std::optional<Context::RuntimeError>& diag)
 		if (idx >= 0)
 		{
 			deleteObjectByID(object[idx].getID(), Context::object, Context::vertexData);
-
+			Lexer::tokens.clear();
+			Parser::nodes.clear();
 			return 0;
 		}
 		else
@@ -1921,6 +1936,9 @@ void redo()
 
 	int evalDelete{ evaluateDeleteFunc(diag) };
 
+	if (evalDelete == 0 || evalDelete == -1)
+		return;
+
 	RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
 
 	if (std::holds_alternative<Context::RuntimeError>(evalObj))
@@ -2012,4 +2030,108 @@ std::string nameGen(Object::Type type)
 	} while (searchObjectIndexByName(candidateName, Context::object) > 0);
 
 	return candidateName;
+}
+
+float getDistanceToCamera(const glm::vec3& cameraPos, const Object& obj)
+{
+	constexpr float scale{ 0.1f };
+
+	Object::Type type{ obj.getType() };
+	const RuntimeValue& comp{ obj.getComponents() };
+
+	if (type == Object::Point && (std::holds_alternative<glm::vec3>(comp) || std::holds_alternative<Eval::IPoint>(comp)))
+	{
+		glm::vec3 targetPoint{ *extractPoint(comp) };
+
+		targetPoint *= scale;
+
+		float distance{ glm::length(targetPoint - cameraPos) };
+
+		return distance;
+	}
+
+	else if (type == Object::Vector || type == Object::Segment || type == Object::Line)
+	{
+		glm::vec3 point{};
+		glm::vec3 vecOrigin{};
+		glm::vec3 vecHead{};
+
+		if (type == Object::Line && (std::holds_alternative<Eval::Line>(comp) || std::holds_alternative<Eval::ILine>(comp)))
+		{
+			Eval::Line line{ *extractLine(comp) };
+
+			point = line.point;
+			vecOrigin = line.dVecOrigin;
+			vecHead = line.dVecHead;
+		}
+
+		else if (type == Object::Vector && std::holds_alternative<Eval::Vector>(comp))
+		{
+			const Eval::Vector& vector{ std::get<Eval::Vector>(comp) };
+
+			point = vector.origin;
+			vecOrigin = vector.origin;
+			vecHead = vector.head;
+		}
+
+		else if (type == Object::Segment && std::holds_alternative<Eval::Segment>(comp))
+		{
+			const Eval::Segment& seg{ std::get<Eval::Segment>(comp) };
+
+			point = seg.A;
+			vecOrigin = seg.A;
+			vecHead = seg.B;
+		}
+
+		point *= scale;
+		vecOrigin *= scale;
+		vecHead *= scale;
+
+		glm::vec3 vecDirection{ vecHead - vecOrigin };
+		float lineLength{ glm::length(vecDirection) };
+
+		if (lineLength < FLT_EPSILON) return -1.0f;
+
+		if (type == Object::Vector || type == Object::Segment)
+		{
+			float tNorm{ glm::dot(cameraPos - point, vecDirection) / (lineLength * lineLength) };
+			
+			float tStar{ std::min(std::max(tNorm, 0.0f), 1.0f) };
+
+			float distance{ glm::length(point + tStar * vecDirection - cameraPos) };
+
+			return distance;
+		}
+
+		float distance{ glm::length(glm::cross(cameraPos - point, vecDirection)) / lineLength };
+
+		return distance;
+	}
+
+	else if (type == Object::Plane && std::holds_alternative<Eval::Plane>(comp))
+	{
+		const Eval::Plane& plane{ std::get<Eval::Plane>(comp) };
+
+		glm::vec3 point{ plane.point };
+		//glm::vec3 normalOrigin{ plane.normalOrigin };
+		//glm::vec3 normalHead{ plane.normalHead };
+
+		//normalOrigin *= scale;
+		//normalHead *= scale;
+		point *= scale;
+
+		//glm::vec3 planeNormal{ normalHead - normalOrigin };
+		//float d{ -glm::dot(planeNormal, point) };
+		//
+		//float planeNormalLen{ glm::length(planeNormal) };
+		//if (planeNormalLen < FLT_EPSILON) return -1.0f;
+
+		//float distance{ glm::abs(glm::dot(planeNormal, cameraPos) + d) / planeNormalLen };
+
+		float distance{ glm::length(cameraPos - point) };
+
+		return distance;
+	}
+
+	return -1.0f;
 }

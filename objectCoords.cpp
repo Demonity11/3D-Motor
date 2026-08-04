@@ -491,7 +491,11 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 
 	if (firstRun)
 	{
-		size_t objIdx{ createObject({ "GRID_PLANE", Object::Plane, GL_TRIANGLES }, static_cast<int>(planeVertices.size()) / 7, {}, glm::vec4(0.0f, 0.0f, 0.0f, 0.1f), 0) };
+		Eval::Plane plane{ glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f) };
+
+		Object obj{ "GRID_PLANE", Object::Plane, GL_TRIANGLES, plane, glm::vec4{0.0f, 0.0f, 0.0f, 0.1f} };
+		createObject(obj, static_cast<int>(planeVertices.size()) / 7);
+		//size_t objIdx{ createObject({ "GRID_PLANE", Object::Plane, GL_TRIANGLES }, static_cast<int>(planeVertices.size()) / 7, {}, glm::vec4(0.0f, 0.0f, 0.0f, 0.1f), 0) };
 		//Context::symbolTable["GRID_PLANE"] = objIdx;
 	}
 	
@@ -516,7 +520,7 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 		0.0f, 0.0f, 1.0f, 1.0f
 	};
 
-	char axis{ 'X' };
+	char axisPrefix{ 'X' };
 
 	glm::vec3 axisPos{ 0.0f, 0.5f, 0.0f };
 
@@ -542,13 +546,16 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 
 		if (firstRun)
 		{
-			Object obj{ std::string(1, axis) + "_AXIS", Object::Segment, GL_LINES };
-			const std::string objName{ obj.getName() };
-			size_t objIdx{ createObject(std::move(obj), vCountCilinder + vCountCone, axisPos, color, 0) };
+			Eval::Vector axisVec{ a, b };
+			Object obj{ std::string(1, axisPrefix) + "_AXIS", Object::Vector, GL_LINES, axisVec, color };
+			createObject(obj, vCountCilinder + vCountCone);
 
+			//Object obj{ std::string(1, axisPrefix) + "_AXIS", Object::Vector, GL_LINES };
+			//const std::string objName{ obj.getName() };
+			//size_t objIdx{ createObject(std::move(obj), vCountCilinder + vCountCone, axisPos, color, 0) };
 			//Context::symbolTable[objName] = objIdx;
 
-			++axis;
+			++axisPrefix;
 		}
 	}
 
@@ -567,7 +574,7 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 
 	glm::vec4 ringColor{ 0.0f, 0.0f, 0.0f, 1.0f };
 
-	axis = 'X';
+	axisPrefix = 'X';
 
 	// this loop does 3 * 20160 = 60480 pushbacks
 	for (size_t v{ 0 }; v < axisVertices.size(); v += 6)
@@ -579,13 +586,17 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 
 		if (firstRun)
 		{
-			Object obj{ std::string(1, axis) + "_AXIS_RINGS", Object::Segment, GL_LINES };
-			const std::string objName{ obj.getName() };
-			size_t objIdx{ createObject(std::move(obj), vCountRing, axisPos, ringColor, 0) };
+			Eval::Segment axisSeg{ a, b };
+			Object obj{ std::string(1, axisPrefix) + "_AXIS_RINGS", Object::Segment, GL_LINES, axisSeg, ringColor };
+			createObject(obj, vCountRing);
+
+			//Object obj{ std::string(1, axisPrefix) + "_AXIS_RINGS", Object::Segment, GL_LINES };
+			//const std::string objName{ obj.getName() };
+			//size_t objIdx{ createObject(std::move(obj), vCountRing, axisPos, ringColor, 0) };
 
 			//Context::symbolTable[objName] = objIdx;
 
-			++axis;
+			++axisPrefix;
 		}
 	}
 
@@ -594,9 +605,12 @@ void getEnvironmentVertices(std::vector<float>& vertexData, bool firstRun)
 
 	if (firstRun)
 	{
-		Object obj{ "GRID_LINES", Object::Segment, GL_LINES };
-		const std::string objName{ obj.getName() };
-		size_t objIdx{ createObject(std::move(obj), vCountGrid, {}, glm::vec4(0.0f, 0.0f, 0.0f, 0.5f), 0) };
+		Eval::Segment seg{ glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f) };
+
+		Object obj{ "GRID_LINES", Object::Segment, GL_LINES, seg, glm::vec4(0.0f, 0.0f, 0.0f, 0.5f) };
+		createObject(obj, vCountGrid);
+		//const std::string objName{ obj.getName() };
+		//size_t objIdx{ createObject(std::move(obj), vCountGrid, {}, glm::vec4(0.0f, 0.0f, 0.0f, 0.5f), 0) };
 
 		//Context::symbolTable[objName] = objIdx;
 	}

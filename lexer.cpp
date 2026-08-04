@@ -87,7 +87,7 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 		else if (isAlpha(c))
 		{
 			size_t start{ l };
-			while (l < input.size() && isAlnum(input[l]))
+			while (l < input.size() && (isAlnum(input[l]) || input[l] == '_'))
 			{
 				l++;
 			}

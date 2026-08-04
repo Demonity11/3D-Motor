@@ -115,6 +115,7 @@ void menuBar()
 					};
 
 					resetScene();
+					Context::redoBuffer.clear();
 					addToastNotification(toast);
 				}
 				else
@@ -1030,8 +1031,11 @@ void showVariables(std::vector<Object>& object)
 
 			if (ImGui::Button(deleteText.c_str()))
 			{
+				Context::inputData += "Delete(" + obj.getName() + ")\n";
+
 				deleteObjectByID(currentID, object, Context::vertexData);
 				rebuildScene(object, Context::vertexData);
+
 				Context::prevSelectedObjID = -1;
 				Context::selectedObjID = -1;
 				break;

@@ -54,6 +54,8 @@ void pushRedoBuffer(const std::string& lastInput);
 void redo();
 void undoRedoShortcut();
 
+float getDistanceToCamera(const glm::vec3& cameraPos, const Object& obj);
+
 constexpr char getMaxSymbolForType(Object::Type type);
 constexpr const char* getPrefixForType(Object::Type type);
 std::string nameGen(Object::Type type);
