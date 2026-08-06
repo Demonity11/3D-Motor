@@ -334,8 +334,26 @@ void updateInputData(const Object& obj)
 				ss << "Vector(Point(" << plane.normalOrigin << "), Point(" << plane.normalHead << ")))";
 			}
 		},
-		[](const Eval::IPoint& iPoint) {},
-		[](const Eval::ILine& iLine) {},
+		[&](const Eval::IPoint& iPoint) 
+		{
+			if (pIDs[0] >= 0 && pIDs[1] >= 0)
+			{
+				const Object& pObj0{ object[searchObjectByID(pIDs[0], object)] };
+				const Object& pObj1{ object[searchObjectByID(pIDs[1], object)] };
+
+				ss << obj.getName() << " = Intersect(" << pObj0.getName() << ", " << pObj1.getName() << ")";
+			}
+		},
+		[&](const Eval::ILine& iLine) 
+			{
+				if (pIDs[0] >= 0 && pIDs[1] >= 0)
+				{
+					const Object& pObj0{ object[searchObjectByID(pIDs[0], object)] };
+					const Object& pObj1{ object[searchObjectByID(pIDs[1], object)] };
+
+					ss << obj.getName() << " = Intersect(" << pObj0.getName() << ", " << pObj1.getName() << ")";
+				}
+			},
 		[](const Context::RuntimeError& error) {} 
 		}, comp);
 

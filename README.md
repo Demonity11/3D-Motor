@@ -98,7 +98,7 @@ There is always more to refine and build, and I am excited to continue expanding
 
 ## 📚 Credits & References
 
-* **LearnCPP.com:** Fundamental C++ techniques and core modern language paradigms.
-* **3D Math Primer for Graphics and Game Development:** Mathematical intuition for vector algebra, projections, and spatial transformations.
-* **GeoGebra 3D:** Functional inspiration for interactive parametric geometric modeling tools.
+* **learncpp.com:** Fundamental C++ techniques and core modern language paradigms.
+* **learnopengl.com:** Mathematical intuition for vector algebra, projections, and spatial transformations.
+* **GeoGebra:** Functional inspiration for interactive parametric geometric modeling tools.
 * **Dear ImGui & GLFW:** GUI framework and windowing abstraction layers.

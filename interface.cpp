@@ -1120,7 +1120,6 @@ int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::
 	// object data
 	Object::Type type{ obj.getType() };
 	const std::array<int, 3>& pIDs{ obj.getParentIDs() };
-	//const std::array<int, 3>& pCompIndex{ obj.getpCompIndex() };
 	const glm::vec4& color{ obj.getColor() };
 
 	int vCount{ 0 };
@@ -1260,8 +1259,6 @@ int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::
 		plane.point *= scale;
 		plane.normalOrigin *= scale;
 		plane.normalHead *= scale;
-
-		printRuntimeValue(plane);
 
 		// getPlaneVertices create 6 new vertices
 		vCount = getPlaneVertices(plane.normalOrigin, plane.normalHead, plane.point, color, vertexData);
