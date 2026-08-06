@@ -615,12 +615,15 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const 
 
     if (args.size() == 2)
     {
-        if (std::holds_alternative<Eval::Line>(args[0]) &&
-            std::holds_alternative<Eval::Line>(args[1]))
+        if ((std::holds_alternative<Eval::Line>(args[0]) || std::holds_alternative<Eval::ILine>(args[0])) &&
+            (std::holds_alternative<Eval::Line>(args[1]) || std::holds_alternative<Eval::ILine>(args[1])))
         {
-            RuntimeValue temp{ intersectionLineLine(std::get<Eval::Line>(args[0]), std::get<Eval::Line>(args[1])) };
+            std::optional<Eval::Line> line0{ extractLine(args[0]) };
+            std::optional<Eval::Line> line1{ extractLine(args[1]) };
 
-            if (Eval::IPoint * intersection{ std::get_if<Eval::IPoint>(&temp) })
+            RuntimeValue temp{ intersectionLineLine(*line0, *line1) };
+
+            if (Eval::IPoint* intersection{ std::get_if<Eval::IPoint>(&temp) })
             {
                 intersection->pTypes[0] = deduceTypeByIdentifierName(nodes[cIdx[0]].content);
                 intersection->pTypes[1] = deduceTypeByIdentifierName(nodes[cIdx[1]].content);
@@ -631,10 +634,12 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const 
             return temp;
         }
 
-        else if (std::holds_alternative<Eval::Line>(args[0]) &&
+        else if ((std::holds_alternative<Eval::Line>(args[0]) || std::holds_alternative<Eval::ILine>(args[0])) &&
                  std::holds_alternative<Eval::Plane>(args[1]))
         {
-            RuntimeValue temp{ intersectionLinePlane(std::get<Eval::Line>(args[0]), std::get<Eval::Plane>(args[1])) };
+            std::optional<Eval::Line> line0{ extractLine(args[0]) };
+
+            RuntimeValue temp{ intersectionLinePlane(*line0, std::get<Eval::Plane>(args[1])) };
 
             if (Eval::IPoint * intersection{ std::get_if<Eval::IPoint>(&temp) })
             {
@@ -648,9 +653,11 @@ RuntimeValue evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const 
         }
 
         else if (std::holds_alternative<Eval::Plane>(args[0]) &&
-                 std::holds_alternative<Eval::Line>(args[1]))
+            (std::holds_alternative<Eval::Line>(args[1]) || std::holds_alternative<Eval::ILine>(args[1])))
         {
-            RuntimeValue temp{ intersectionLinePlane(std::get<Eval::Line>(args[1]), std::get<Eval::Plane>(args[0])) };
+            std::optional<Eval::Line> line1{ extractLine(args[1]) };
+
+            RuntimeValue temp{ intersectionLinePlane(*line1, std::get<Eval::Plane>(args[0])) };
 
             if (Eval::IPoint * intersection{ std::get_if<Eval::IPoint>(&temp) })
             {
