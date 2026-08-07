@@ -79,7 +79,7 @@ public:
 		glDeleteShader(fragment);
 	}
 	// use/activate the shader
-	void use()
+	void use() const
 	{
 		glUseProgram(ID);
 	}
@@ -142,7 +142,7 @@ public:
 	}
 
 private:
-	void checkCompileErrors(GLuint shader, const std::string& type)
+	void checkCompileErrors(GLuint shader, const std::string& type) const
 	{
 		GLint success{};
 		GLchar infoLog[1024];

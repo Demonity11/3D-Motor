@@ -1,0 +1,5 @@
+initialPoint = Point(4.5, 1.5, 0)
+rightVec = Vector(Point(0.87, 0.5, 0))
+upVec = Vector(Point(-0.5, 0.87, 0))
+u = Cross(rightVec, upVec)
+finalPoint = Point(1.1, 5.3, 0)

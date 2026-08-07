@@ -228,7 +228,8 @@ void updateInputData(const Object& obj)
 
 	std::stringstream ss{};
 
-	auto getObjectNameByID = [&](int id) -> std::string {
+	auto getObjectNameByID = [&](int id) -> std::string 
+		{
 		int idx{ searchObjectByID(id, object) };
 		if (idx != -1)
 		{
@@ -246,16 +247,35 @@ void updateInputData(const Object& obj)
 		},
 		[&](const Eval::Vector& vector)
 		{
-			ss << obj.getName() << " = Vector(";
+			ss << obj.getName() << " = ";
 
 			if (vector.pTypes[0] == Object::Null && vector.pTypes[1] == Object::Point)
 			{
+				ss << "Vector(";
+
 				if (pIDs[0] >= 0)
 					ss << getObjectNameByID(pIDs[0]) << ")";
 				else
 					ss << "Point(" << vector.head << "))";
 				return;
 			}
+
+			if (vector.pTypes[0] == Object::Vector)
+			{
+				ss << "Cross(";
+
+				if (pIDs[0] >= 0 && pIDs[1] >= 0)
+				{
+					const Object& pObj0{ object[searchObjectByID(pIDs[0], object)] };
+					const Object& pObj1{ object[searchObjectByID(pIDs[1], object)] };
+
+					ss << pObj0.getName() << ", " << pObj1.getName() << ")";
+				}
+
+				return;
+			}
+
+			ss << "Vector(";
 
 			if (pIDs[0] >= 0)
 				ss << getObjectNameByID(pIDs[0]) << ", ";
