@@ -1760,8 +1760,10 @@ bool loadSceneFromFile(const std::string& filename)
 			return false;
 		}
 
-		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName);
-		updateInputData(Context::object[Context::object.size() - 1]);
+		if (extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName))
+		{
+			updateInputData(Context::object[Context::object.size() - 1]);
+		}
 
 		Lexer::tokens.clear();
 		Parser::nodes.clear();
@@ -1882,8 +1884,10 @@ void undo()
 			return;
 		}
 
-		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName);
-		updateInputData(Context::object[Context::object.size() - 1]);
+		if (extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName))
+		{
+			updateInputData(Context::object[Context::object.size() - 1]);
+		}
 
 		Lexer::tokens.clear();
 		Parser::nodes.clear();
@@ -1976,7 +1980,7 @@ void redo()
 		return;
 	}
 
-	extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
+	extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName);
 
 	Lexer::tokens.clear();
 	Parser::nodes.clear();
@@ -2018,6 +2022,7 @@ constexpr const char* getPrefixForType(Object::Type type)
 	case Object::Plane:   return "Pl";
 	case Object::Line:    return "L";
 	case Object::Segment: return "Seg";
+	case Object::Number:  return "N";
 	default:              return "Obj";
 	}
 }
@@ -2029,7 +2034,7 @@ std::string nameGen(Object::Type type)
 	char currentSymbol{ objectSymbols[type] };
 	const char maxSymbol{ getMaxSymbolForType(type) };
 
-	if (currentSymbol <= maxSymbol)
+	if (currentSymbol <= maxSymbol && currentSymbol != '.')
 	{
 		std::string singleCharName(1, currentSymbol);
 

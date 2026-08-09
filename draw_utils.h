@@ -43,16 +43,16 @@ auto showVariables(std::vector<Object>& object)														    	-> void;
 auto debugWindow()																							-> void;
 
 auto addToastNotification(const Toast& toast)																-> void;
-auto pushErrorStyle(const std::optional<Context::RuntimeError>& diag)										-> void;
-auto popErrorStyle(const std::optional<Context::RuntimeError>& diag)										-> void;
+auto pushErrorStyle(const Diag& diag)																		-> void;
+auto popErrorStyle(const Diag& diag)																		-> void;
 
 auto generateObjectVertices(Object& obj, const std::vector<Object>& object, std::vector<float>& vertexData)	-> int;
-void extractAndRegisterObject
+bool extractAndRegisterObject
 (
 	const RuntimeValue& evalObj, 
 	const std::vector<Object>& object, 
 	const std::vector<Node>& nodes, 
-	const std::optional<std::string>& targetName
+	const OptName& targetName
 );
 
 void drawObjectLabels

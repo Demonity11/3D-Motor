@@ -261,7 +261,7 @@ RuntimeValue evaluateSumOperator(const std::array<RuntimeValue, 2>& operands)
 
     else if (auto* v0{ std::get_if<Eval::Vector>(&operands[0]) }, * v1{ std::get_if<Eval::Vector>(&operands[1]) }; v0 && v1)
     {
-        return Eval::Vector{ v0->origin + v1->origin, v0->head + v1->head };
+        return Eval::Vector{ glm::vec3(0.0f), (v0->head + v1->head) - (v0->origin + v1->origin) };
     }
 
     else if (std::holds_alternative<Eval::Vector>(operands[0]) &&
@@ -301,7 +301,7 @@ RuntimeValue evaluateSubtractionOperator(const std::array<RuntimeValue, 2>& oper
 
     else if (auto* v0{ std::get_if<Eval::Vector>(&operands[0]) }, * v1{ std::get_if<Eval::Vector>(&operands[1]) }; v0 && v1)
     {
-        return Eval::Vector{ v0->origin - v1->origin, v0->head - v1->head };
+        return Eval::Vector{ glm::vec3(0.0f), (v0->head - v1->head) - (v0->origin - v1->origin) };
     }
 
     else if ((std::holds_alternative<glm::vec3>(operands[0]) || std::holds_alternative<Eval::IPoint>(operands[0])) &&
@@ -345,7 +345,7 @@ RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& o
         float f{ std::get<float>(operands[0]) };
         const Eval::Vector& v{ std::get<Eval::Vector>(operands[1]) };
 
-        return Eval::Vector{ f * v.origin, f * v.head };
+        return Eval::Vector{ glm::vec3(0.0f), (f * v.head) - (f * v.origin) };
     }
 
     else if (std::holds_alternative<Eval::Vector>(operands[0]) && std::holds_alternative<float>(operands[1]))
@@ -353,7 +353,7 @@ RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& o
         const Eval::Vector& v{ std::get<Eval::Vector>(operands[0]) };
         float f{ std::get<float>(operands[1]) };
 
-        return Eval::Vector{ f * v.origin, f * v.head };
+        return Eval::Vector{ glm::vec3(0.0f), (f * v.head) - (f * v.origin) };
     }
 
     else if (std::holds_alternative<float>(operands[0]) && 

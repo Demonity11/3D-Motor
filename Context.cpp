@@ -56,6 +56,7 @@ namespace Context
 		{ Object::Point,   'A' },
 		{ Object::Segment, 'f' },
 		{ Object::Plane,   'p' },
+		{ Object::Number,  '.' }, // it is just a symbol to be skipped.
 		{ Object::Line,    'r' }
 	};
 

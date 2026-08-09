@@ -846,7 +846,7 @@ void addToastNotification(const Toast& toast)
 	Context::toastNotifications.push_back(toast);
 }
 
-void pushErrorStyle(const std::optional<Context::RuntimeError>& diag)
+void pushErrorStyle(const Diag& diag)
 {
 	if (!diag) return;
 
@@ -869,7 +869,7 @@ void pushErrorStyle(const std::optional<Context::RuntimeError>& diag)
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
 }
 
-void popErrorStyle(const std::optional<Context::RuntimeError>& diag)
+void popErrorStyle(const Diag& diag)
 {
 	if (!diag) return;
 
@@ -940,12 +940,14 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 
 	printRuntimeValue(evalObj);
 
-	extractAndRegisterObject(evalObj, object, Parser::nodes, targetName);
-	updateInputData(object[object.size() - 1]);
-
-	if (!Context::redoBuffer.empty())
+	if (extractAndRegisterObject(evalObj, object, Parser::nodes, targetName))
 	{
-		Context::redoBuffer.clear();
+		updateInputData(object[object.size() - 1]);
+
+		if (!Context::redoBuffer.empty())
+		{
+			Context::redoBuffer.clear();
+		}
 	}
 	
 	Lexer::tokens.clear();
@@ -1452,7 +1454,7 @@ void drawAxisLabels
 	}
 }
 
-void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes, const std::optional<std::string>& targetName)
+bool extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Object>& object, const std::vector<Node>& nodes, const OptName& targetName)
 {
 	Object::Type type{ duduceRuntimeValueType(evalObj) };
 
@@ -1460,8 +1462,17 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	if (scanForIdenticalObject(type, evalObj, object))
 	{
-		std::cerr << "Object already exist.\n";
-		return;
+		Toast toast
+		{
+			"Object Warning",
+			"Object is already defined.",
+			ImColor{ 255, 255, 0, 0 },
+			Context::defaultToastDuration,
+			Context::defaultToastDuration
+		};
+
+		Context::toastNotifications.push_back(toast);
+		return false;
 	}
 
 	int pCount{ 0 };
@@ -1475,72 +1486,35 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	if (targetName) 
 	{
-		//if (targetName->length() == 1)
-		//{
-		//	int idx{ searchObjectIndexByName(*targetName, object) };
+		objName = *targetName;
 
-		//	if (idx >= 0)
-		//	{
-		//		Object newObj{ object[idx] };
-		//		if (type != newObj.getType())
-		//		{
-		//			Toast toast
-		//			{
-		//				"Type Error",
-		//				"Variable reassignment only works if the type matches. Expected '"
-		//				+ getStringFunctionType(newObj.getType()) + "', given '" + getStringFunctionType(type) + "'.",
-		//				ImColor{ 255, 255, 0, 0 },
-		//				Context::defaultToastDuration,
-		//				Context::defaultToastDuration
-		//			};
+		int idx{ searchObjectIndexByName(objName, object) };
 
-		//			addToastNotification(toast);
-		//			return;
-		//		}
-
-		//		newObj.setComponents(evalObj);
-		//		newObj.setParentIDs(pIDs);
-		//		newObj.setParentCount(pCount);
-
-		//		updateObject(idx, newObj);
-		//		return;
-		//	}
-
-		//	objName = nameGen(type);
-		//}
-
-		//else
-		//{
-			objName = *targetName;
-
-			int idx{ searchObjectIndexByName(objName, object) };
-
-			if (idx >= 0)
+		if (idx >= 0)
+		{
+			Object newObj{ object[idx] };
+			if (type != newObj.getType())
 			{
-				Object newObj{ object[idx] };
-				if (type != newObj.getType())
+				Toast toast
 				{
-					Toast toast
-					{
-						"Type Error",
-						"Variable reassignment only works if the type matches. Expected '" + getStringFunctionType(newObj.getType()) + "', given '" + getStringFunctionType(type) + "'.",
-						ImColor{ 255, 255, 0, 0 },
-						Context::defaultToastDuration,
-						Context::defaultToastDuration
-					};
+					"Type Error",
+					"Variable reassignment only works if the type matches. Expected '" + getStringFunctionType(newObj.getType()) + "', given '" + getStringFunctionType(type) + "'.",
+					ImColor{ 255, 255, 0, 0 },
+					Context::defaultToastDuration,
+					Context::defaultToastDuration
+				};
 
-					Context::toastNotifications.push_back(toast);
-					return;
-				}
-
-				newObj.setComponents(evalObj);
-				newObj.setParentIDs(pIDs);
-				newObj.setParentCount(pCount);
-
-				updateObject(idx, newObj);
-				return;
+				Context::toastNotifications.push_back(toast);
+				return false;
 			}
-		//}
+
+			newObj.setComponents(evalObj);
+			newObj.setParentIDs(pIDs);
+			newObj.setParentCount(pCount);
+
+			updateObject(idx, newObj);
+			return true;
+		}
 	}
 
 	else 
@@ -1574,8 +1548,17 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	if (vCount == -1)
 	{
-		std::cerr << "ERROR::FAILED_TO_GENERATE_VERTICES\n";
-		return;
+		Toast toast
+		{
+			"Vertices Error",
+			"Failed to generate vertices.",
+			ImColor{ 255, 0, 0, 0 },
+			Context::defaultToastDuration,
+			Context::defaultToastDuration
+		};
+
+		Context::toastNotifications.push_back(toast);
+		return false;
 	}
 
 	size_t objIdx{ createObject(std::move(obj), vCount) };
@@ -1583,6 +1566,8 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 	Context::symbolTable[objName] = objIdx;
 
 	updateBufferData(Context::vertexData);
+
+	return true;
 }
 
 void debugWindow()
