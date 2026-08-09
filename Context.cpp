@@ -65,7 +65,9 @@ namespace Context
 		{ Object::Point,   GL_LINES },
 		{ Object::Segment, GL_LINES },
 		{ Object::Line,    GL_LINES },
-		{ Object::Plane,   GL_TRIANGLES }
+		{ Object::Plane,   GL_TRIANGLES },
+
+		{ Object::Number,  1}
 	};
 
 	std::map<Object::Type, glm::vec4> defaultColors

@@ -27,22 +27,29 @@ public:
 
 	Object
 	(
-		std::string name, 
-		Type type, 
-		unsigned int primitive, 
-		const RuntimeValue& components, 
-		const glm::vec4& color, 
-		const std::array<int, 3>& pIDs = {-1, -1, -1},
+		std::string name,
+		Type type,
+		unsigned int primitive,
+		const RuntimeValue& components,
+		const glm::vec4& color,
+		const std::array<int, 3>& pIDs = { -1, -1, -1 },
 		int pCount = 0
 	)
 		: m_name{ name }
 		, m_type{ type }
 		, m_primitive{ primitive }
 		, m_components{ components }
-		, m_color { color }
-		, m_parentIDs { pIDs }
-		, m_parentCount { pCount }
+		, m_color{ color }
+		, m_parentIDs{ pIDs }
+		, m_parentCount{ pCount }
 	{
+	}
+
+	Object(std::string name, Type type, const RuntimeValue& components)
+		: m_name { name }
+		, m_type { type }
+		, m_components { components }
+	{ 
 	}
 
 	Object()

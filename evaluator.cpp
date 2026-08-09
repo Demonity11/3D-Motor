@@ -67,7 +67,7 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
         for (int childIdx : node.children)
         {
             if (childIdx == -1) break;
-            
+
             RuntimeValue childVal{ evaluator(nodes, object, childIdx) };
 
             if (std::holds_alternative<RuntimeError>(childVal))
@@ -114,6 +114,47 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
             node.charPosition,
             node.content.length()
         };
+    }
+
+    else if (node.type == Node::Exp1 || node.type == Node::Exp2)
+    {
+        std::string_view op{ node.content };
+
+        std::array<RuntimeValue, 2> operands{};
+        for (size_t i{ 0 }; i < operands.size(); ++i)
+        {
+            int childIdx{ node.children[i] };
+            if (childIdx == -1) break;
+
+            RuntimeValue operand{ evaluator(nodes, object, childIdx) };
+
+            if (std::holds_alternative<RuntimeError>(operand))
+            {
+                return operand;
+            }
+
+            operands[i] = operand;
+        }
+
+        if (op == "+")
+        {
+            return evaluateSumOperator(operands);
+        }
+
+        else if (op == "-")
+        {
+            return evaluateSubtractionOperator(operands);
+        }
+
+        else if (op == "*")
+        {
+            return evaluateMultiplicationOperator(operands);
+        }
+
+        else
+        {
+            return Context::RuntimeError{};
+        }
     }
 
     else if (node.type == Node::Variable)
@@ -166,49 +207,187 @@ void printRuntimeValue(const RuntimeValue& value)
         {
             std::cout << "Literal:\t" << f << '\n';
         },
-        [](glm::vec3 point)
+        [](const glm::vec3& point)
         {
             std::cout << "Point:\t(" << point << ")\n";
         },
-        [](Eval::Vector vector)
+        [](const Eval::Vector& vector)
         {
             std::cout << "Vector Origin:\t(" << vector.origin << ")\n";
             std::cout << "Vector Head:\t(" << vector.head << ")\n";
         },
-        [](Eval::Segment segment)
+        [](const Eval::Segment& segment)
         {
             std::cout << "Segment A:\t(" << segment.A << ")\n";
             std::cout << "Segment B:\t(" << segment.B << ")\n";
         },
-        [](Eval::Line line)
+        [](const Eval::Line& line)
         {
             std::cout << "Point:\t(" << line.point << ")\n";
             std::cout << "Direction Vector Origin:\t(" << line.dVecOrigin << ")\n";
             std::cout << "Direction Vector Head:\t(" << line.dVecHead << ")\n";
         },
-        [](Eval::Plane plane)
+        [](const Eval::Plane& plane)
         {
             std::cout << "Point:\t(" << plane.point << ")\n";
             std::cout << "Normal Vector Origin:\t(" << plane.normalOrigin << ")\n";
             std::cout << "Normal Vector Head:\t(" << plane.normalHead << ")\n";
         },
-        [](Eval::IPoint iPoint)
+        [](const Eval::IPoint& iPoint)
         {
             std::cout << "Intersect:\t(" << iPoint.point << ")\n";
         },
-        [](Eval::ILine iLine)
+        [](const Eval::ILine& iLine)
         {
             std::cout << "Intersect\n";
             std::cout << "Point:\t(" << iLine.line.point << ")\n";
             std::cout << "Direction Vector Origin:\t(" << iLine.line.dVecOrigin << ")\n";
             std::cout << "Direction Vector Head:\t(" << iLine.line.dVecHead << ")\n";
         },
-        [](Context::RuntimeError error)
+        [](const Context::RuntimeError& error)
         {
             std::cerr << error.message << '\n';
         }
 
         }, value);
+}
+
+RuntimeValue evaluateSumOperator(const std::array<RuntimeValue, 2>& operands)
+{
+    if (auto* f0{ std::get_if<float>(&operands[0]) }, * f1{ std::get_if<float>(&operands[1]) }; f0 && f1)
+    {
+        return *f0 + *f1;
+    }
+
+    else if (auto* v0{ std::get_if<Eval::Vector>(&operands[0]) }, * v1{ std::get_if<Eval::Vector>(&operands[1]) }; v0 && v1)
+    {
+        return Eval::Vector{ v0->origin + v1->origin, v0->head + v1->head };
+    }
+
+    else if (std::holds_alternative<Eval::Vector>(operands[0]) &&
+        (std::holds_alternative<glm::vec3>(operands[1]) || std::holds_alternative<Eval::IPoint>(operands[1])))
+    {
+        const Eval::Vector& v{ std::get<Eval::Vector>(operands[0]) };
+        const std::optional<glm::vec3>& p{ extractPoint(operands[1]) };
+
+        if (p)
+        {
+            return glm::vec3{ (v.head - v.origin) + (*p) };
+        }
+    }
+
+    else if ((std::holds_alternative<glm::vec3>(operands[0]) || std::holds_alternative<Eval::IPoint>(operands[0])) &&
+              std::holds_alternative<Eval::Vector>(operands[1])
+        )
+    {
+        const std::optional<glm::vec3>& p{ extractPoint(operands[0]) };
+        const Eval::Vector& v{ std::get<Eval::Vector>(operands[1]) };
+
+        if (p)
+        {
+            return glm::vec3{ (v.head - v.origin) + (*p) };
+        }
+    }
+
+    return Context::RuntimeError{};
+}
+
+RuntimeValue evaluateSubtractionOperator(const std::array<RuntimeValue, 2>& operands)
+{
+    if (auto* f0{ std::get_if<float>(&operands[0]) }, * f1{ std::get_if<float>(&operands[1]) }; f0 && f1)
+    {
+        return *f0 - *f1;
+    }
+
+    else if (auto* v0{ std::get_if<Eval::Vector>(&operands[0]) }, * v1{ std::get_if<Eval::Vector>(&operands[1]) }; v0 && v1)
+    {
+        return Eval::Vector{ v0->origin - v1->origin, v0->head - v1->head };
+    }
+
+    else if ((std::holds_alternative<glm::vec3>(operands[0]) || std::holds_alternative<Eval::IPoint>(operands[0])) &&
+        std::holds_alternative<Eval::Vector>(operands[1])
+        )
+    {
+        const std::optional<glm::vec3>& p{ extractPoint(operands[0]) };
+        const Eval::Vector& v{ std::get<Eval::Vector>(operands[1]) };
+
+        if (p)
+        {
+            return glm::vec3{ (*p) - (v.head - v.origin) };
+        }
+    }
+
+    else if ((std::holds_alternative<glm::vec3>(operands[0]) || std::holds_alternative<Eval::IPoint>(operands[0])) &&
+        (std::holds_alternative<glm::vec3>(operands[1]) || std::holds_alternative<Eval::IPoint>(operands[1]))
+        )
+    {
+        const std::optional<glm::vec3>& p0{ extractPoint(operands[0]) };
+        const std::optional<glm::vec3>& p1{ extractPoint(operands[1]) };
+
+        if (p0 && p1)
+        {
+            return Eval::Vector{ *p1, *p0 };
+        }
+    }
+
+    return Context::RuntimeError{};
+}
+
+RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& operands)
+{
+    if (auto* f0{ std::get_if<float>(&operands[0]) }, * f1{ std::get_if<float>(&operands[1]) }; f0 && f1)
+    {
+        return (*f0) * (*f1);
+    }
+
+    else if (std::holds_alternative<float>(operands[0]) && std::holds_alternative<Eval::Vector>(operands[1]))
+    {
+        float f{ std::get<float>(operands[0]) };
+        const Eval::Vector& v{ std::get<Eval::Vector>(operands[1]) };
+
+        return Eval::Vector{ f * v.origin, f * v.head };
+    }
+
+    else if (std::holds_alternative<Eval::Vector>(operands[0]) && std::holds_alternative<float>(operands[1]))
+    {
+        const Eval::Vector& v{ std::get<Eval::Vector>(operands[0]) };
+        float f{ std::get<float>(operands[1]) };
+
+        return Eval::Vector{ f * v.origin, f * v.head };
+    }
+
+    else if (std::holds_alternative<float>(operands[0]) && 
+        (std::holds_alternative<glm::vec3>(operands[1]) || std::holds_alternative<Eval::IPoint>(operands[1]))
+        )
+    {
+        float f{ std::get<float>(operands[0]) };
+        const std::optional<glm::vec3>& p{ extractPoint(operands[1]) };
+
+        if (p)
+        {
+            return f * (*p);
+        }
+    }
+
+    else if ((std::holds_alternative<glm::vec3>(operands[0]) || std::holds_alternative<Eval::IPoint>(operands[0])) &&
+        std::holds_alternative<float>(operands[1])
+        )
+    {
+        const std::optional<glm::vec3>& p{ extractPoint(operands[0]) };
+        float f{ std::get<float>(operands[1]) };
+
+        if (p)
+        {
+            return f * (*p);
+        }
+    }
+
+    else if (auto* v0{ std::get_if<Eval::Vector>(&operands[0]) }, * v1{ std::get_if<Eval::Vector>(&operands[1]) }; v0 && v1)
+    {
+        return glm::dot(v0->head - v0->origin, v1->head - v1->origin);
+    }
+
+    return Context::RuntimeError{};
 }
 
 RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)

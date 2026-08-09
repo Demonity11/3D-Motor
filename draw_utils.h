@@ -36,7 +36,7 @@ void processInput
 	char inputBuffer[128], 
 	const std::vector<FunctionArgs>& funcOverloads, 
 	const std::vector<Object>& object, 
-	std::optional<Context::RuntimeError>& diag
+	Diag& diag
 );
 auto showVariables(std::vector<Object>& object)														    	-> void;
 

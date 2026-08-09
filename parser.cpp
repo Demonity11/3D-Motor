@@ -7,13 +7,15 @@ namespace Parser
 	std::vector<Node> nodes{};
 }
 
-std::string_view convertNodeTo_string_view(Node::Type type)
+constexpr std::string_view convertNodeTo_string_view(Node::Type type)
 {
 	switch (type)
 	{
 	case Node::Function: return "Function";
 	case Node::Variable: return "Variable";
-	case Node::Literal: return "Literal";
+    case Node::Literal: return "Literal";
+    case Node::Exp1: return "Exp1";
+    case Node::Exp2: return "Exp2";
 	}
 
 	return "???";
@@ -30,7 +32,201 @@ void printNodes(const std::vector<Node>& nodes)
 	}
 }
 
-std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optional<Context::RuntimeError>& diag, size_t tp)
+std::optional<ParseResult> parseChainedOperator(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp, int parentIdx)
+{
+    using Context::RuntimeError;
+    using Context::ErrorSeverity;
+
+    if (tp >= tokens.size())
+    {
+        diag = RuntimeError
+        {
+            "Parser Error at col " + std::to_string(tokens.back().charPosition + 1) + ": Expected right operand after operator '" + std::string(tokens.back().lexeme) + "'.",
+            ErrorSeverity::Error,
+            tokens.back().charPosition,
+            tokens.back().lexeme.length()
+        };
+        return std::nullopt;
+    }
+
+    if (tokens[tp].type == Token::BiOperator)
+    {
+        size_t opPos{ tokens[tp].charPosition };
+        std::string opLexeme{ tokens[tp].lexeme };
+
+        Node chainedOperator{ (tokens[tp].lexeme == "*" ? Node::Exp2 : Node::Exp1), tokens[tp].lexeme, opPos };
+
+        std::optional<ParseResult> chainedRightOperand{ parseExp2(tokens, diag, targetName, ++tp) };
+
+        if (!chainedRightOperand)
+        {
+            if (!diag.has_value())
+            {
+                diag = RuntimeError
+                {
+                    "Parser Error at col " + std::to_string(opPos + 1) + ": Expected right operand after operator '" + opLexeme + "'.",
+                    ErrorSeverity::Error,
+                    opPos,
+                    opLexeme.length()
+                };
+            }
+            return std::nullopt;
+        }
+
+        tp = chainedRightOperand->nextTP;
+
+        using Parser::nodes;
+
+        chainedOperator.children = { parentIdx, chainedRightOperand->nodeIdx, -1 };
+        int chainedOperatorIdx{ static_cast<int>(nodes.size()) };
+
+        nodes.push_back(chainedOperator);
+
+        return ParseResult{ tp, chainedOperatorIdx };
+    }
+    else
+    {
+        diag = RuntimeError
+        {
+            "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected trailing token '" + std::string(tokens[tp].lexeme) + "'.",
+            ErrorSeverity::Error,
+            tokens[tp].charPosition,
+            tokens[tp].lexeme.length()
+        };
+
+        return std::nullopt;
+    }
+}
+
+std::optional<ParseResult> parseExp2(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp)
+{
+    using Context::RuntimeError;
+    using Context::ErrorSeverity;
+
+    int lOperandIdx{};
+    int rOperandIdx{};
+
+    if (tp < tokens.size())
+    {
+        std::optional<ParseResult> lOperand{ parsePrimary(tokens, diag, targetName, tp) };
+
+        if (!lOperand)
+        {
+            return std::nullopt;
+        }
+
+        tp = lOperand->nextTP;
+
+        if (tp < tokens.size() && tokens[tp].lexeme == "*")
+        {
+            size_t operatorPos{ tokens[tp].charPosition };
+
+            lOperandIdx = lOperand->nodeIdx;
+
+            std::optional<ParseResult> rOperand{ parsePrimary(tokens, diag, targetName, ++tp) };
+
+            if (!rOperand)
+            {
+                if (!diag.has_value())
+                {
+                    diag = RuntimeError
+                    {
+                        "Parser Error at col " + std::to_string(operatorPos + 1) + ": Expected right operand after '*' operator.",
+                        ErrorSeverity::Error,
+                        operatorPos,
+                        1
+                    };
+                }
+                return std::nullopt;
+            }
+
+            tp = rOperand->nextTP;
+
+            rOperandIdx = rOperand->nodeIdx;
+
+            using Parser::nodes;
+
+            int parentIdx{ static_cast<int>(nodes.size()) };
+            nodes.push_back({ Node::Exp2, "*", operatorPos });
+            nodes.back().children = { lOperandIdx, rOperandIdx, -1 };
+
+            return ParseResult{ tp, parentIdx };
+        }
+
+        return ParseResult{ tp, lOperand->nodeIdx };
+    }
+
+    return std::nullopt;
+}
+
+std::optional<ParseResult> parseExp1(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp)
+{
+    using Context::RuntimeError;
+    using Context::ErrorSeverity;
+
+    int lOperandIdx{};
+    int rOperandIdx{};
+
+    if (tp < tokens.size())
+    {
+        std::optional<ParseResult> lOperand{ parseExp2(tokens, diag, targetName, tp) };
+
+        if (!lOperand)
+        {
+            return std::nullopt;
+        }
+
+        tp = lOperand->nextTP;
+
+        if (tp < tokens.size() && (tokens[tp].lexeme == "+" || tokens[tp].lexeme == "-"))
+        {
+            size_t operatorPos{ tokens[tp].charPosition };
+            std::string_view op{ tokens[tp].lexeme };
+
+            lOperandIdx = lOperand->nodeIdx;
+
+            std::optional<ParseResult> rOperand{ parseExp2(tokens, diag, targetName, ++tp) };
+
+            if (!rOperand)
+            {
+                if (!diag.has_value())
+                {
+                    diag = RuntimeError
+                    {
+                        "Parser Error at col " + std::to_string(operatorPos + 1) + ": Expected right operand after '" + std::string(op) + "' operator.",
+                        ErrorSeverity::Error,
+                        operatorPos,
+                        op.length()
+                    };
+                }
+                return std::nullopt;
+            }
+
+            tp = rOperand->nextTP;
+
+            rOperandIdx = rOperand->nodeIdx;
+
+            using Parser::nodes;
+
+            int parentIdx{ static_cast<int>(nodes.size()) };
+            nodes.push_back({ Node::Exp1, op, operatorPos });
+            nodes.back().children = { lOperandIdx, rOperandIdx, -1 };
+
+            if (tp < tokens.size())
+            {
+                return parseChainedOperator(tokens, diag, targetName, tp, parentIdx);
+            }
+
+            return ParseResult{ tp, parentIdx };
+        }
+
+        return ParseResult{ tp, lOperand->nodeIdx };
+    }
+
+    return std::nullopt;
+}
+
+std::optional<ParseResult> parsePrimary(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp)
 {
     using Context::RuntimeError;
     using Context::ErrorSeverity;
@@ -39,12 +235,12 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
     {
         diag = RuntimeError
         {
-            "Parser Warning at col 0: Input is empty.",
+            "Parser Warning at col 0: Input field is empty.",
             ErrorSeverity::Warning,
             0,
             0
         };
-  
+
         return std::nullopt;
     }
 
@@ -52,13 +248,26 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
 
     using Parser::nodes;
 
+    if (tp >= tokens.size())
+    {
+        diag = RuntimeError
+        {
+            "Parser Error at col " + std::to_string(tokens.back().charPosition + 1) + ": Unexpected end of expression. Expected an operand.",
+            ErrorSeverity::Error,
+            tokens.back().charPosition,
+            tokens.back().lexeme.length()
+        };
+
+        return std::nullopt;
+    }
+
     const Token* token{ &tokens[tp] };
 
     if (token->type == Token::Equals)
     {
         diag = RuntimeError
         {
-            "Parser Error at col " + std::to_string(token->charPosition + 1) + ": Unexpected assignment operator(=).",
+            "Parser Error at col " + std::to_string(token->charPosition + 1) + ": Unexpected assignment operator ('=').",
             ErrorSeverity::Error,
             token->charPosition,
             1
@@ -70,21 +279,48 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
 
     if (token->type == Token::Number)
     {
+        if (parserCalls == 0 && tp + 1 < tokens.size() && tokens[tp + 1].type != Token::BiOperator)
+        {
+            diag = RuntimeError
+            {
+                "Parser Error at col " + std::to_string(token->charPosition + 1) + ": Standalone numbers must be assigned to a variable.",
+                ErrorSeverity::Error,
+                token->charPosition,
+                token->lexeme.size()
+            };
+
+            return std::nullopt;
+        }
+
         int myIdx{ static_cast<int>(nodes.size()) };
         nodes.push_back({ Node::Literal, token->lexeme, token->charPosition });
+
+        if (parserCalls > 0 && tp + 1 < tokens.size() && tokens[tp + 1].type == Token::BiOperator)
+        {
+            return parseChainedOperator(tokens, diag, targetName, ++tp, myIdx);
+        }
 
         return ParseResult{ tp + 1, myIdx };
     }
 
     if (token->type == Token::Identifier)
     {
-        std::optional<std::string> targetName{ std::nullopt };
-
-        if (tp == 0 && tp + 3 < tokens.size() &&
-            tokens[tp + 1].type == Token::Equals &&
-            tokens[tp + 2].type == Token::Identifier &&
-            tokens[tp + 3].type == Token::LParen)
+        if (tp == 0 && tp + 2 < tokens.size() && tokens[tp + 1].type == Token::Equals)
         {
+            if (tokens[tp + 2].type != Token::Identifier && tokens[tp + 2].type != Token::Number)
+            {
+                diag = RuntimeError
+                {
+                    "Parser Error at col " + std::to_string(tokens[tp + 2].charPosition + 1) +
+                    ": Expected Identifier or Number after assignment, given '" + std::string(convertTokenTo_string_view(tokens[tp + 2].type)) + "'.",
+                    ErrorSeverity::Error,
+                    tokens[tp + 2].charPosition,
+                    tokens[tp + 2].lexeme.length()
+                };
+
+                return std::nullopt;
+            }
+
             targetName = std::string(token->lexeme);
             for (const auto& func : Context::funcOverloads)
             {
@@ -101,6 +337,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                     return std::nullopt;
                 }
             }
+
             tp += 2;
             token = &tokens[tp];
         }
@@ -111,7 +348,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
             {
                 diag = RuntimeError
                 {
-                    "Parser Error at col " + std::to_string(token[tp + 1].charPosition + 1) + ": '" + std::string(token->lexeme) + "' function is empty.",
+                    "Parser Error at col " + std::to_string(tokens[tp + 1].charPosition + 1) + ": Function '" + std::string(token->lexeme) + "' cannot be empty.",
                     ErrorSeverity::Error,
                     tokens[tp + 1].charPosition,
                     1
@@ -121,15 +358,8 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
             }
 
             int parentIdx{ static_cast<int>(nodes.size()) };
-            if (targetName)
-            {
-                nodes.push_back({ Node::Function, token->lexeme, token->charPosition, *targetName});
-            }
 
-            else
-            {
-                nodes.push_back({ Node::Function, token->lexeme, token->charPosition });
-            }
+            nodes.push_back({ Node::Function, token->lexeme, token->charPosition });
 
             tp += 2;
             size_t childCount{ 0 };
@@ -139,7 +369,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
             while (tp < tokens.size() && tokens[tp].type != Token::RParen)
             {
                 ++parserCalls;
-                std::optional<ParseResult> childResult{ parser(tokens, diag, tp) };
+                std::optional<ParseResult> childResult{ parsePrimary(tokens, diag, targetName, tp) };
                 --parserCalls;
 
                 if (!childResult.has_value())
@@ -152,7 +382,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                 {
                     diag = RuntimeError
                     {
-                        "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Argument overflow.", 
+                        "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Argument overflow for function '" + std::string(token->lexeme) + "'.",
                         ErrorSeverity::Error,
                         tokens[tp].charPosition,
                         tokens[tp].lexeme.length()
@@ -175,7 +405,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                     {
                         diag = RuntimeError
                         {
-                            "Parser Error at col " + std::to_string(tokens[tp + 1].charPosition + 1) + ": Misplaced comma.",
+                            "Parser Error at col " + std::to_string(tokens[tp + 1].charPosition + 1) + ": Misplaced consecutive comma.",
                             ErrorSeverity::Error,
                             tokens[tp + 1].charPosition,
                             1
@@ -209,7 +439,7 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
 
                 diag = RuntimeError
                 {
-                    "Parser Error at col " + std::to_string(tokens[tp - 1].charPosition + 1) + ": Unmatched parenthesis.",
+                    "Parser Error at col " + std::to_string(tokens[tp - 1].charPosition + 1) + ": Unmatched parenthesis in function call.",
                     ErrorSeverity::Error,
                     tokens[tp - 1].charPosition,
                     tokens[tp - 1].lexeme.length()
@@ -222,11 +452,11 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
 
             tp++;
 
-            if (parserCalls == 0 && tp < tokens.size())
+            if (parserCalls == 0 && tp < tokens.size() && tokens[tp].type != Token::BiOperator)
             {
                 diag = RuntimeError
                 {
-                    "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected trailing tokens.",
+                    "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected trailing token '" + std::string(tokens[tp].lexeme) + "'.",
                     ErrorSeverity::Error,
                     tokens[tp].charPosition,
                     tokens[tp].lexeme.length()
@@ -237,11 +467,16 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
                 return std::nullopt;
             }
 
+            else if (parserCalls > 0 && tp < tokens.size() && tokens[tp].type == Token::BiOperator)
+            {
+                return parseChainedOperator(tokens, diag, targetName, tp, parentIdx);
+            }
+
             else if (parserCalls > 0 && tp < tokens.size() && (tokens[tp].type == Token::Identifier || tokens[tp].type == Token::Number) && tokens[tp - 1].type != Token::Comma)
             {
                 diag = RuntimeError
                 {
-                    "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Missing comma.",
+                    "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Missing comma between arguments.",
                     ErrorSeverity::Error,
                     tokens[tp].charPosition,
                     tokens[tp].lexeme.length()
@@ -255,18 +490,49 @@ std::optional<ParseResult> parser(const std::vector<Token>& tokens, std::optiona
             return ParseResult{ tp, parentIdx };
         }
 
+        else if (targetName && tokens[tp].type == Token::Number)
+        {
+            int myIdx = static_cast<int>(nodes.size());
+            nodes.push_back({ Node::Literal, token->lexeme, token->charPosition });
+            nodes[myIdx].targetName = *targetName;
+
+            return ParseResult{ ++tp, myIdx };
+        }
+
         else
         {
             int myIdx = static_cast<int>(nodes.size());
             nodes.push_back({ Node::Variable, token->lexeme, token->charPosition });
 
+            if (parserCalls > 0 && tp + 1 < tokens.size() && tokens[tp + 1].type == Token::BiOperator)
+            {
+                return parseChainedOperator(tokens, diag, targetName, ++tp, myIdx);
+            }
+
             return ParseResult{ tp + 1, myIdx };
         }
     }
 
+    if (tp > 0 && tp - 1 < tokens.size() && tokens[tp - 1].type == Token::BiOperator)
+    {
+        std::string lexemeVal = (tp < tokens.size()) ? std::string(tokens[tp].lexeme) : "<EOF>";
+        size_t errCol = (tp < tokens.size()) ? tokens[tp].charPosition : tokens.back().charPosition;
+        size_t errLen = (tp < tokens.size()) ? tokens[tp].lexeme.length() : 1;
+
+        diag = RuntimeError
+        {
+            "Parser Error at col " + std::to_string(errCol + 1) + ": Expected an operand, given '" + lexemeVal + "'.",
+            ErrorSeverity::Error,
+            errCol,
+            errLen
+        };
+
+        return std::nullopt;
+    }
+
     diag = RuntimeError
     {
-        "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected token.",
+        "Parser Error at col " + std::to_string(tokens[tp].charPosition + 1) + ": Unexpected token '" + std::string(tokens[tp].lexeme) + "'.",
         ErrorSeverity::Error,
         tokens[tp].charPosition,
         tokens[tp].lexeme.length()

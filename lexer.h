@@ -39,7 +39,8 @@ struct Token
 		RParen,
 		Number,
 		Comma,
-		Equals
+		Equals,
+		BiOperator
 	};
 
 	Type type{};
@@ -54,7 +55,7 @@ namespace Lexer
 }
 
 auto tokenizer(const std::string& input, std::optional<Context::RuntimeError>& diag) -> void;
-auto convertTokenTo_string_view(Token::Type type)									 -> std::string_view;
+constexpr auto convertTokenTo_string_view(Token::Type type)									 -> std::string_view;
 auto printTokens(const std::vector<Token>& tokens)									 -> void;
 
 auto isAlnum(char ch)																 -> bool;

@@ -13,9 +13,14 @@ struct Node
 {
 	enum Type
 	{
+		// primary
 		Function,
 		Variable,
-		Literal
+		Literal,
+		
+		// expressions -> Exp1 (Exp = Expression, 1 = level of precedence, higher precedence levels are evaluated first)
+		Exp1,
+		Exp2
 	};
 
 	Node::Type type{};
@@ -36,7 +41,18 @@ namespace Parser
 	extern std::vector<Node> nodes;
 }
 
-auto parser(const std::vector<Token>& tokens, std::optional<Context::RuntimeError>& diag, size_t tp = 0) -> std::optional<ParseResult>;
-auto printNodes(const std::vector<Node>& nodes)															 -> void;
+// aliases
+using Diag    = std::optional<Context::RuntimeError>;
+using OptName = std::optional<std::string>;
+
+constexpr auto convertNodeTo_string_view(Node::Type type)					   -> std::string_view;
+
+auto parsePrimary(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp = 0)	   -> std::optional<ParseResult>;
+auto parseExp2(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp = 0)	   -> std::optional<ParseResult>;
+auto parseExp1(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp = 0)	   -> std::optional<ParseResult>;
+
+auto parseChainedOperator(const std::vector<Token>& tokens, Diag& diag, OptName& targetName, size_t tp, int parentIdx) -> std::optional<ParseResult>;
+
+auto printNodes(const std::vector<Node>& nodes)																   -> void;
 
 #endif

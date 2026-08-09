@@ -26,6 +26,10 @@ auto evaluatePlaneFunc(const std::vector<RuntimeValue>& args, const Node& node, 
 auto evaluateIntersectFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes) -> RuntimeValue;
 auto evaluateIntersectFunc(const std::vector<RuntimeValue>& args)													-> RuntimeValue;
 
+RuntimeValue evaluateSumOperator(const std::array<RuntimeValue, 2>& operands);
+RuntimeValue evaluateSubtractionOperator(const std::array<RuntimeValue, 2>& operands);
+RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& operands);
+
 auto findParentsIDs(const std::vector<Node>& nodes)																	-> std::array<int, 3>;
 auto deduceTypeByIdentifierName(std::string_view func)															    -> Object::Type;
 

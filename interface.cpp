@@ -879,11 +879,13 @@ void popErrorStyle(const std::optional<Context::RuntimeError>& diag)
 	ImGui::PopStyleColor(2);
 }
 
-void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOverloads, const std::vector<Object>& object, std::optional<Context::RuntimeError>& diag)
+void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOverloads, const std::vector<Object>& object, Diag& diag)
 {
 	std::string inputText{ inputBuffer };
 
 	tokenizer(inputText, diag);
+	printTokens(Lexer::tokens);
+	std::cout << "\n";
 
 	if (diag)
 	{
@@ -891,7 +893,10 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 		return;
 	}
 
-	parser(Lexer::tokens, diag);
+	OptName targetName{ std::nullopt };
+	std::optional<ParseResult> parseResult{ parseExp1(Lexer::tokens, diag, targetName) };
+	printNodes(Parser::nodes);
+	std::cout << "\n";
 
 	if (diag)
 	{
@@ -911,7 +916,17 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 		return;
 	}
 
-	RuntimeValue evalObj{ evaluator(Parser::nodes, object) };
+	Node::Type lastNodeType{ Parser::nodes[parseResult->nodeIdx].type };
+
+	RuntimeValue evalObj{};
+	if (lastNodeType == Node::Exp1 || lastNodeType == Node::Exp2)
+	{
+		evalObj = evaluator(Parser::nodes, object, parseResult->nodeIdx);
+	}
+	else
+	{
+		evalObj = evaluator(Parser::nodes, object);
+	}
 
 	if (std::holds_alternative<Context::RuntimeError>(evalObj))
 	{
@@ -923,7 +938,9 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 		return;
 	}
 
-	extractAndRegisterObject(evalObj, object, Parser::nodes, Parser::nodes[0].targetName);
+	printRuntimeValue(evalObj);
+
+	extractAndRegisterObject(evalObj, object, Parser::nodes, targetName);
 	updateInputData(object[object.size() - 1]);
 
 	if (!Context::redoBuffer.empty())
@@ -1065,8 +1082,14 @@ bool getObjectInputFloats(Object& obj)
 
 	std::visit(overloaded
 		{
-		[](float f)
-		{},
+		[&](float& f)
+		{
+			ImGui::InputFloat(("Number###" + obj.getName()).c_str(), &f, NULL, NULL, "%.2f", textFlags);
+			if (ImGui::IsItemDeactivatedAfterEdit())
+			{
+				isDeactivated = true;
+			}
+		},
 		[&](glm::vec3& point)
 		{
 			checkInput("Point###A", &point[0]);
@@ -1452,26 +1475,42 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	if (targetName) 
 	{
-		if (targetName->length() == 1)
-		{
-			int idx{ searchObjectIndexByName(*targetName, object) };
+		//if (targetName->length() == 1)
+		//{
+		//	int idx{ searchObjectIndexByName(*targetName, object) };
 
-			if (idx >= 0)
-			{
-				Object newObj{ object[idx] };
-				newObj.setComponents(evalObj);
-				newObj.setParentIDs(pIDs);
-				newObj.setParentCount(pCount);
+		//	if (idx >= 0)
+		//	{
+		//		Object newObj{ object[idx] };
+		//		if (type != newObj.getType())
+		//		{
+		//			Toast toast
+		//			{
+		//				"Type Error",
+		//				"Variable reassignment only works if the type matches. Expected '"
+		//				+ getStringFunctionType(newObj.getType()) + "', given '" + getStringFunctionType(type) + "'.",
+		//				ImColor{ 255, 255, 0, 0 },
+		//				Context::defaultToastDuration,
+		//				Context::defaultToastDuration
+		//			};
 
-				updateObject(idx, newObj);
-				return;
-			}
+		//			addToastNotification(toast);
+		//			return;
+		//		}
 
-			objName = nameGen(type);
-		}
+		//		newObj.setComponents(evalObj);
+		//		newObj.setParentIDs(pIDs);
+		//		newObj.setParentCount(pCount);
 
-		else
-		{
+		//		updateObject(idx, newObj);
+		//		return;
+		//	}
+
+		//	objName = nameGen(type);
+		//}
+
+		//else
+		//{
 			objName = *targetName;
 
 			int idx{ searchObjectIndexByName(objName, object) };
@@ -1479,6 +1518,21 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 			if (idx >= 0)
 			{
 				Object newObj{ object[idx] };
+				if (type != newObj.getType())
+				{
+					Toast toast
+					{
+						"Type Error",
+						"Variable reassignment only works if the type matches. Expected '" + getStringFunctionType(newObj.getType()) + "', given '" + getStringFunctionType(type) + "'.",
+						ImColor{ 255, 255, 0, 0 },
+						Context::defaultToastDuration,
+						Context::defaultToastDuration
+					};
+
+					Context::toastNotifications.push_back(toast);
+					return;
+				}
+
 				newObj.setComponents(evalObj);
 				newObj.setParentIDs(pIDs);
 				newObj.setParentCount(pCount);
@@ -1486,7 +1540,7 @@ void extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 				updateObject(idx, newObj);
 				return;
 			}
-		}
+		//}
 	}
 
 	else 
@@ -1535,6 +1589,7 @@ void debugWindow()
 {
 	using namespace Context;
 
+	// std::format is greatly used here because the performance cost is not to be considered in such a small project
 	if (ImGui::Begin("DebugWindow", NULL))
 	{
 		if (ImGui::CollapsingHeader("Context", NULL))

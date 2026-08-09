@@ -8,12 +8,13 @@ namespace Lexer
 	std::vector<Token> tokens{};
 }
 
-std::string_view convertTokenTo_string_view(Token::Type type)
+constexpr std::string_view convertTokenTo_string_view(Token::Type type)
 {
 	switch (type)
 	{
 	case Token::Identifier: return "Identifier";
 	case Token::Equals: return "Equals";
+	case Token::BiOperator: return "BiOperator";
 	case Token::LParen: return "LParen";
 	case Token::RParen: return "RParen";
 	case Token::Number: return "Number";
@@ -82,6 +83,16 @@ void tokenizer(const std::string& input, std::optional<Context::RuntimeError>& d
 		else if (c == '=')
 		{
 			tokens.push_back({ Token::Equals, std::string_view(&input[l], 1), l });
+		}
+		
+		else if (c == '+' || c == '*')
+		{
+			tokens.push_back({ Token::BiOperator, std::string_view(&input[l], 1), l });
+		}
+
+		else if (c == '-' && l + 1 < input.length() && input[l + 1] != '.' && input[l + 1] != '-' && !isDigit(input[l + 1]))
+		{
+			tokens.push_back({ Token::BiOperator, std::string_view(&input[l], 1), l });
 		}
 
 		else if (isAlpha(c))

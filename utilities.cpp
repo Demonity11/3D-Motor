@@ -93,7 +93,11 @@ size_t createObject(Object obj, int vCount)
 	if (!Context::object.empty())
 	{
 		int previousIndex{ static_cast<int>(Context::object.size()) - 1 };
-		offset = Context::object[previousIndex].getOffset() + Context::object[previousIndex].getVertexCount();
+
+		if (vCount != 0)
+		{
+			offset = Context::object[previousIndex].getOffset() + Context::object[previousIndex].getVertexCount();
+		}
 	}
 
 	obj.setID(id);
@@ -240,7 +244,10 @@ void updateInputData(const Object& obj)
 
 	std::visit(overloaded
 		{
-		[](float f) {},
+		[&](float f) 
+		{
+			ss << obj.getName() << " = " << f;
+		},
 		[&](const glm::vec3& p)
 		{
 			ss << obj.getName() << " = Point(" << p << ")";
@@ -615,90 +622,64 @@ void updateSelectedObjectColor(int objIndex, std::vector<Object>& object, std::v
 
 bool compareRuntimeValue(Object::Type type, const RuntimeValue& components1, const RuntimeValue& components2)
 {
-	constexpr float epsilon{ 0.001f };
+	constexpr float epsilon{ FLT_EPSILON };
 	bool isIdentical{ true };
 
-	if (type == Object::Point &&
-		(std::holds_alternative<glm::vec3>(components1) || std::holds_alternative<Eval::IPoint>(components1)) &&
-		(std::holds_alternative<glm::vec3>(components2) || std::holds_alternative<Eval::IPoint>(components2))
-		)
+	if (type == Object::Point)
 	{ 
-		glm::vec3 point1{};
-		glm::vec3 point2{};
-
-		if (std::holds_alternative<glm::vec3>(components1))
-			point1 = std::get<glm::vec3>(components1);
-		else
-			point1 = std::get<Eval::IPoint>(components1).point;
-
-		if (std::holds_alternative<glm::vec3>(components2))
-			point2 = std::get<glm::vec3>(components2);
-		else
-			point2 = std::get<Eval::IPoint>(components2).point;
-
-		return glm::distance(point1, point2) < epsilon;
+		if (auto p1{ extractPoint(components1) }, p2{ extractPoint(components2) }; p1 && p2)
+		{
+			return glm::distance(*p1, *p2) < epsilon;
+		}
 	}
-	else if (type == Object::Vector &&
-		std::holds_alternative<Eval::Vector>(components1) &&
-		std::holds_alternative<Eval::Vector>(components2)
-		)
+	else if (type == Object::Vector)
 	{
-		const Eval::Vector& vector1{ std::get<Eval::Vector>(components1) };
-		const Eval::Vector& vector2{ std::get<Eval::Vector>(components2) };
-
-		return (glm::distance(vector1.origin, vector2.origin) < epsilon) &&
-			   (glm::distance(vector1.head, vector2.head) < epsilon);
+		if (auto* v1{ std::get_if<Eval::Vector>(&components1) }, * v2{ std::get_if<Eval::Vector>(&components2) }; v1 && v2)
+		{
+			return (glm::distance(v1->origin, v2->origin) < epsilon) &&
+				   (glm::distance(v1->head, v2->head) < epsilon);
+		}
 	}
-	else if (type == Object::Segment &&
-		std::holds_alternative<Eval::Segment>(components1) &&
-		std::holds_alternative<Eval::Segment>(components2)
-		)
+	else if (type == Object::Segment)
 	{
-		const Eval::Segment& segment1{ std::get<Eval::Segment>(components1) };
-		const Eval::Segment& segment2{ std::get<Eval::Segment>(components2) };
+		if (auto* s1{ std::get_if<Eval::Segment>(&components1) }, * s2{ std::get_if<Eval::Segment>(&components2) }; s1 && s2)
+		{
+			bool directMatch{ (glm::distance(s1->A, s2->A) < epsilon) &&
+						  (glm::distance(s1->B, s2->B) < epsilon) };
 
-		bool directMatch{ (glm::distance(segment1.A, segment2.A) < epsilon) &&
-						  (glm::distance(segment1.B, segment2.B) < epsilon) };
+			bool inverseMatch{ (glm::distance(s1->A, s2->B) < epsilon) &&
+							   (glm::distance(s1->B, s2->A) < epsilon) };
 
-		bool inverseMatch{ (glm::distance(segment1.A, segment2.B) < epsilon) &&
-						   (glm::distance(segment1.B, segment2.A) < epsilon) };
-
-		return directMatch || inverseMatch;
+			return directMatch || inverseMatch;
+		}
 	}
-	else if (type == Object::Line &&
-		(std::holds_alternative<Eval::Line>(components1) || std::holds_alternative<Eval::ILine>(components1)) &&
-		(std::holds_alternative<Eval::Line>(components2) || std::holds_alternative<Eval::ILine>(components2))
-		)
+	else if (type == Object::Line)
 	{
-		Eval::Line line1{};
-		Eval::Line line2{};
-
-		if (std::holds_alternative<Eval::Line>(components1))
-			line1 = std::get<Eval::Line>(components1);
-		else
-			line1 = std::get<Eval::ILine>(components1).line;
-
-		if (std::holds_alternative<Eval::Line>(components2))
-			line2 = std::get<Eval::Line>(components2);
-		else
-			line2 = std::get<Eval::ILine>(components2).line;
-
-		return (glm::distance(line1.point, line2.point) < epsilon) &&
-			   (glm::distance(line1.dVecOrigin, line2.dVecOrigin) < epsilon) &&
-			   (glm::distance(line1.dVecHead, line2.dVecHead) < epsilon);
+		if (auto l1{ extractLine(components1) }, l2{ extractLine(components2) }; l1 && l2)
+		{
+			return (glm::distance(l1->point, l2->point) < epsilon) &&
+				(glm::distance(l1->dVecOrigin, l2->dVecOrigin) < epsilon) &&
+				(glm::distance(l1->dVecHead, l2->dVecHead) < epsilon);
+		}
 	}
-	else if (type == Object::Plane &&
-		std::holds_alternative<Eval::Plane>(components1) &&
-		std::holds_alternative<Eval::Plane>(components2)
-		)
+	else if (type == Object::Plane)
 	{
-		const Eval::Plane& plane1{ std::get<Eval::Plane>(components1) };
-		const Eval::Plane& plane2{ std::get<Eval::Plane>(components2) };
-
-		return (glm::distance(plane1.point, plane2.point) < epsilon) &&
-			   (glm::distance(plane1.normalOrigin, plane2.normalOrigin) < epsilon) &&
-			   (glm::distance(plane1.normalHead, plane2.normalHead) < epsilon);
+		if (auto* p1{ std::get_if<Eval::Plane>(&components1) }, * p2{ std::get_if<Eval::Plane>(&components2) }; p1 && p2)
+		{
+			return (glm::distance(p1->point, p2->point) < epsilon) &&
+				(glm::distance(p1->normalOrigin, p2->normalOrigin) < epsilon) &&
+				(glm::distance(p1->normalHead, p2->normalHead) < epsilon);
+		}
 	}
+
+	else if (type == Object::Number)
+	{
+		if (auto* n1{ std::get_if<float>(&components1) }, * n2{ std::get_if<float>(&components2) }; n1 && n2)
+		{
+			return glm::abs((*n1) - (*n2)) < epsilon;
+		}
+	}
+
 	else if (type == Object::Null)
 	{
 		std::cerr << "ERROR::OBJECT_TYPE_IS_UNKNOWN\n";
@@ -838,7 +819,10 @@ std::string extractPName(const Object& obj)
 	}
 
 	std::visit(overloaded{
-		[](float f) {},
+		[&](float f) 
+		{
+			comp << f;
+		},
 		[&](glm::vec3 p)
 		{
 			comp << p;
@@ -1541,37 +1525,37 @@ Object::Type duduceRuntimeValueType(const RuntimeValue& value)
 		{
 		[&](float f)
 		{
-			type = Object::Null;
+			type = Object::Number;
 		},
-		[&](glm::vec3 point)
+		[&](const glm::vec3& point)
 		{
 			type = Object::Point;
 		},
-		[&](Eval::IPoint iPoint)
+		[&](const Eval::IPoint& iPoint)
 		{
 			type = Object::Point;
 		},
-		[&](Eval::Vector vector)
+		[&](const Eval::Vector& vector)
 		{
 			type = Object::Vector;
 		},
-		[&](Eval::Segment segment)
+		[&](const Eval::Segment& segment)
 		{
 			type = Object::Segment;
 		},
-		[&](Eval::Line line)
+		[&](const Eval::Line& line)
 		{
 			type = Object::Line;
 		},
-		[&](Eval::ILine iLine)
+		[&](const Eval::ILine& iLine)
 		{
 			type = Object::Line;
 		},
-		[&](Eval::Plane plane)
+		[&](const Eval::Plane& plane)
 		{
 			type = Object::Plane;
 		},
-		[&](Context::RuntimeError error)
+		[&](const Context::RuntimeError& error)
 		{
 			type = Object::Null;
 		}
@@ -1734,7 +1718,8 @@ bool loadSceneFromFile(const std::string& filename)
 			return false;
 		}
 
-		parser(Lexer::tokens, diag);
+		OptName targetName{ std::nullopt };
+		std::optional<ParseResult> parseResult{ parseExp1(Lexer::tokens, diag, targetName) };
 		if (diag)
 		{
 			Lexer::tokens.clear();
@@ -1754,7 +1739,17 @@ bool loadSceneFromFile(const std::string& filename)
 			break;
 		}
 
-		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
+		Node::Type lastNodeType{ Parser::nodes[parseResult->nodeIdx].type };
+
+		RuntimeValue evalObj{};
+		if (lastNodeType == Node::Exp1 || lastNodeType == Node::Exp2)
+		{
+			evalObj = evaluator(Parser::nodes, Context::object, parseResult->nodeIdx);
+		}
+		else
+		{
+			evalObj = evaluator(Parser::nodes, Context::object);
+		}
 
 		if (std::holds_alternative<Context::RuntimeError>(evalObj))
 		{
@@ -1765,7 +1760,7 @@ bool loadSceneFromFile(const std::string& filename)
 			return false;
 		}
 
-		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
+		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName);
 		updateInputData(Context::object[Context::object.size() - 1]);
 
 		Lexer::tokens.clear();
@@ -1845,7 +1840,8 @@ void undo()
 			return;
 		}
 
-		parser(Lexer::tokens, diag);
+		OptName targetName{};
+		std::optional<ParseResult> parseResult{ parseExp1(Lexer::tokens, diag, targetName) };
 		if (diag)
 		{
 			Lexer::tokens.clear();
@@ -1865,7 +1861,17 @@ void undo()
 			break;
 		}
 
-		RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
+		Node::Type lastNodeType{ Parser::nodes[parseResult->nodeIdx].type };
+
+		RuntimeValue evalObj{};
+		if (lastNodeType == Node::Exp1 || lastNodeType == Node::Exp2)
+		{
+			evalObj = evaluator(Parser::nodes, Context::object, parseResult->nodeIdx);
+		}
+		else
+		{
+			evalObj = evaluator(Parser::nodes, Context::object);
+		}
 
 		if (std::holds_alternative<Context::RuntimeError>(evalObj))
 		{
@@ -1876,7 +1882,7 @@ void undo()
 			return;
 		}
 
-		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, Parser::nodes[0].targetName);
+		extractAndRegisterObject(evalObj, Context::object, Parser::nodes, targetName);
 		updateInputData(Context::object[Context::object.size() - 1]);
 
 		Lexer::tokens.clear();
@@ -1933,7 +1939,8 @@ void redo()
 		return;
 	}
 
-	parser(Lexer::tokens, diag);
+	OptName targetName{};
+	std::optional<ParseResult> parseResult{ parseExp1(Lexer::tokens, diag, targetName) };
 	if (diag)
 	{
 		Lexer::tokens.clear();
@@ -1948,7 +1955,17 @@ void redo()
 	if (evalDelete == 0 || evalDelete == -1)
 		return;
 
-	RuntimeValue evalObj{ evaluator(Parser::nodes, Context::object) };
+	Node::Type lastNodeType{ Parser::nodes[parseResult->nodeIdx].type };
+
+	RuntimeValue evalObj{};
+	if (lastNodeType == Node::Exp1 || lastNodeType == Node::Exp2)
+	{
+		evalObj = evaluator(Parser::nodes, Context::object, parseResult->nodeIdx);
+	}
+	else
+	{
+		evalObj = evaluator(Parser::nodes, Context::object);
+	}
 
 	if (std::holds_alternative<Context::RuntimeError>(evalObj))
 	{
