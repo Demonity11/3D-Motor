@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="GeoGebra3D.vcxproj" Id="46be98ec-039a-4a34-ad29-3dfa829bda46" />
+  <Project Path="3[D] Motor.vcxproj" Id="46be98ec-039a-4a34-ad29-3dfa829bda46" />
 </Solution>
