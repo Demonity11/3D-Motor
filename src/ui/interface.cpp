@@ -1,17 +1,20 @@
-#include "Window.h"
-#include "draw_utils.h"
-#include "utilities.h"
-#include "objectCoords.h"
-#include "Random.h"
-#include "lexer.h"
-#include "parser.h"
-#include "evaluator.h"
-#include <sstream>
-#include <iostream>
+#include "graphics/Window.h"
+#include "graphics/draw_utils.h"
+
+#include "utils/utilities.h"
+#include "utils/fileManager.h"
+#include "utils/Random.h"
+
+#include "scene/objectCoords.h"
+
+#include "interpreter/lexer.h"
+#include "interpreter/parser.h"
+#include "interpreter/evaluator.h"
 
 #include "imgui/imgui_internal.h"
 
-#include "fileManager.h"
+#include <sstream>
+#include <iostream>
 #include <filesystem>
 #include <format>
 
@@ -26,7 +29,7 @@ void initializeImGui(GLFWwindow* window)
 
 	io.Fonts->AddFontDefault();
 
-	Context::spaceFont = io.Fonts->AddFontFromFileTTF("fonts/Inter_24pt-Bold.ttf", Context::fontSize);
+	Context::spaceFont = io.Fonts->AddFontFromFileTTF("assets/fonts/Inter_24pt-Bold.ttf", Context::fontSize);
 
 	static_cast<void>(io);
 

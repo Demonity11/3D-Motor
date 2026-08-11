@@ -16,8 +16,8 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 
-#include "Context.h"
-#include "parser.h"
+#include "scene/Context.h"
+#include "interpreter/parser.h"
 
 struct GLFWwindow;
 

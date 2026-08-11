@@ -1,8 +1,10 @@
 #include "evaluator.h"
-#include "Object.h"
-#include "utilities.h"
-#include "objectCoords.h"
-#include "Random.h"
+
+#include "scene/Object.h"
+#include "scene/objectCoords.h"
+
+#include "utils/utilities.h"
+#include "utils/Random.h"
 
 RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>& object, int nodeIdx)
 {

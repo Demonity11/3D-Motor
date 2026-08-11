@@ -14,9 +14,4 @@ save/*
 *.suo
 *.user
 
-helloCamera.cpp
-helloCamera.frag
-awesomeface.png
-container.jpg
 imgui.ini
-Camera.h

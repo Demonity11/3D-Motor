@@ -1,9 +1,12 @@
 #include "objectCoords.h"
-#include "draw_utils.h"
-#include "Window.h"
-#include "Object.h"
-#include "utilities.h"
-#include "Context.h"
+
+#include "graphics/draw_utils.h"
+#include "graphics/Window.h"
+
+#include "scene/Object.h"
+#include "scene/Context.h"
+
+#include "utils/utilities.h"
 
 void getNewCoordSystem(glm::vec3& direction, glm::vec3& right, glm::vec3& up)
 {

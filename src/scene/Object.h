@@ -9,7 +9,7 @@
 #include <iostream>
 
 #include "ObjectType.h"
-#include "RuntimeValue.h"
+#include "interpreter/RuntimeValue.h"
 
 class Object
 {

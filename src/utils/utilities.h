@@ -7,9 +7,9 @@
 #include <array>
 #include <glm/glm.hpp>
 
-#include "Object.h"
-#include "Context.h"
-#include "evaluator.h"
+#include "scene/Object.h"
+#include "scene/Context.h"
+#include "interpreter/evaluator.h"
 
 auto getStringFunctionType(Object::Type type)																						 -> std::string;
 auto getObjectTypeFromString(const std::string& funcName)																			 -> Object::Type;

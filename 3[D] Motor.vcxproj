@@ -116,6 +116,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)vendor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -134,6 +135,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <TreatWarningAsError>true</TreatWarningAsError>
       <ExternalWarningLevel>InheritWarningLevel</ExternalWarningLevel>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)vendor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,57 +152,37 @@
     <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\src\glad.c" />
-    <ClCompile Include="Context.cpp" />
-    <ClCompile Include="evaluator.cpp" />
-    <ClCompile Include="fileManager.cpp" />
-    <ClCompile Include="lexer.cpp" />
-    <ClCompile Include="objectCoords.cpp" />
-    <ClCompile Include="helloCamera.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="interface.cpp" />
-    <ClCompile Include="main.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Object.cpp" />
-    <ClCompile Include="parser.cpp" />
-    <ClCompile Include="parser.h" />
-    <ClCompile Include="utilities.cpp" />
-    <ClCompile Include="Window.cpp" />
+    <ClCompile Include="src\graphics\Window.cpp" />
+    <ClCompile Include="src\interpreter\evaluator.cpp" />
+    <ClCompile Include="src\interpreter\lexer.cpp" />
+    <ClCompile Include="src\interpreter\parser.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\scene\Context.cpp" />
+    <ClCompile Include="src\scene\Object.cpp" />
+    <ClCompile Include="src\scene\objectCoords.cpp" />
+    <ClCompile Include="src\ui\interface.cpp" />
+    <ClCompile Include="src\utils\fileManager.cpp" />
+    <ClCompile Include="src\utils\utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\stb_image.h" />
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Context.h" />
-    <ClInclude Include="draw_utils.h" />
-    <ClInclude Include="evaluator.h" />
-    <ClInclude Include="fileManager.h" />
-    <ClInclude Include="lexer.h" />
-    <ClInclude Include="Object.h" />
-    <ClInclude Include="objectCoords.h" />
-    <ClInclude Include="ObjectType.h" />
-    <ClInclude Include="Random.h" />
-    <ClInclude Include="RuntimeValue.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="utilities.h" />
-    <ClInclude Include="Window.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="helloCamera.frag" />
-    <None Include="helloCamera.vert" />
     <None Include="README.md" />
-    <None Include="shader.frag" />
-    <None Include="shader.vert" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="awesomeface.png" />
-    <Image Include="container.jpg" />
-  </ItemGroup>
-  <ItemGroup>
-    <Font Include="fonts\Inter-VariableFont_opsz,wght.ttf" />
-    <Font Include="fonts\Inter_24pt-Bold.ttf" />
+    <ClInclude Include="src\graphics\Camera.h" />
+    <ClInclude Include="src\graphics\draw_utils.h" />
+    <ClInclude Include="src\graphics\Shader.h" />
+    <ClInclude Include="src\graphics\Window.h" />
+    <ClInclude Include="src\interpreter\evaluator.h" />
+    <ClInclude Include="src\interpreter\lexer.h" />
+    <ClInclude Include="src\interpreter\parser.h" />
+    <ClInclude Include="src\interpreter\RuntimeValue.h" />
+    <ClInclude Include="src\scene\Context.h" />
+    <ClInclude Include="src\scene\Object.h" />
+    <ClInclude Include="src\scene\objectCoords.h" />
+    <ClInclude Include="src\scene\ObjectType.h" />
+    <ClInclude Include="src\utils\fileManager.h" />
+    <ClInclude Include="src\utils\Random.h" />
+    <ClInclude Include="src\utils\utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

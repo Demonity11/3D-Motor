@@ -1,12 +1,14 @@
-#include "Window.h"
-#include "Shader.h"
-#include "draw_utils.h"
-#include "objectCoords.h"
-#include "utilities.h"
-#include "Context.h"
-#include "evaluator.h"
+#include "graphics/Window.h"
+#include "graphics/Shader.h"
+#include "graphics/draw_utils.h"
 
-#include "fileManager.h"
+#include "utils/utilities.h"
+#include "utils/fileManager.h"
+
+#include "scene/objectCoords.h"
+#include "scene/Context.h"
+
+#include "interpreter/evaluator.h"
 
 void processInput(GLFWwindow* window);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
@@ -35,7 +37,7 @@ int main()
 	Window window{ width, height, title };
 	window.init();
 
-	Shader shader{ "shader.vert", "shader.frag" };
+	Shader shader{ "assets/shaders/shader.vert", "assets/shaders/shader.frag" };
 
 	glfwSetMouseButtonCallback(window.getWindow(), mouse_button_callback);
 	glfwSetCursorPosCallback(window.getWindow(), mouse_cursor_callback);

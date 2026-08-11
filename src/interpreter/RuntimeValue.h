@@ -4,7 +4,7 @@
 #include <variant>
 #include <string>
 #include <glm/glm.hpp>
-#include "ObjectType.h"
+#include "scene/ObjectType.h"
 #include "lexer.h"
 
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };

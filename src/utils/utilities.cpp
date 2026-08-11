@@ -1,6 +1,6 @@
 #include "utilities.h"
-#include "objectCoords.h"
-#include "draw_utils.h"
+#include "scene/objectCoords.h"
+#include "graphics/draw_utils.h"
 #include "Random.h"
 #include <iomanip>
 #include <sstream>

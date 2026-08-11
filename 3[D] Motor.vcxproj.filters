@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\include\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\..\..\..\CPP-PROJECTS\GLFW\src\glad.c" />
+    <ClCompile Include="src\interpreter\evaluator.cpp">
+      <Filter>interpreter</Filter>
+    </ClCompile>
+    <ClCompile Include="src\interpreter\lexer.cpp">
+      <Filter>interpreter</Filter>
+    </ClCompile>
+    <ClCompile Include="src\interpreter\parser.cpp">
+      <Filter>interpreter</Filter>
+    </ClCompile>
+    <ClCompile Include="src\graphics\Window.cpp">
+      <Filter>graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\fileManager.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\utils\utilities.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\interface.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scene\Context.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scene\Object.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scene\objectCoords.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="graphics">
+      <UniqueIdentifier>{fd314aad-bdc0-4978-a577-fb95f9741c9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="scene">
+      <UniqueIdentifier>{755dac9f-e791-4261-9176-2dfe1e0c2853}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ui">
+      <UniqueIdentifier>{600d7fd0-7c67-4fd8-b451-1669fa570f6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{a6579240-6519-4665-b4d5-bf1b03542f66}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="interpreter">
+      <UniqueIdentifier>{6fbd9ba3-3883-49c8-bb15-1b76b5afd5b0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\interpreter\evaluator.h">
+      <Filter>interpreter</Filter>
+    </ClInclude>
+    <ClInclude Include="src\interpreter\lexer.h">
+      <Filter>interpreter</Filter>
+    </ClInclude>
+    <ClInclude Include="src\interpreter\parser.h">
+      <Filter>interpreter</Filter>
+    </ClInclude>
+    <ClInclude Include="src\interpreter\RuntimeValue.h">
+      <Filter>interpreter</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphics\Camera.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphics\draw_utils.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphics\Shader.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\graphics\Window.h">
+      <Filter>graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\fileManager.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\Random.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\utils\utilities.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene\Context.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene\Object.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene\objectCoords.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="src\scene\ObjectType.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

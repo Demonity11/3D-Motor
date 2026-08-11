@@ -1,7 +1,7 @@
 #include "fileManager.h"
 #include <filesystem>
-#include "lexer.h"
-#include "Context.h"
+#include "interpreter/lexer.h"
+#include "scene/Context.h"
 #include "imgui/imgui.h"
 
 std::vector<std::string> readFile(const std::string& filename)
