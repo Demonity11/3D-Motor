@@ -138,17 +138,17 @@ RuntimeValue evaluator(const std::vector<Node>& nodes, const std::vector<Object>
 
         if (op == "+")
         {
-            return evaluateSumOperator(operands);
+            return evaluateSumOperator(operands, node, nodes);
         }
 
         else if (op == "-")
         {
-            return evaluateSubtractionOperator(operands);
+            return evaluateSubtractionOperator(operands, node, nodes);
         }
 
         else if (op == "*")
         {
-            return evaluateMultiplicationOperator(operands);
+            return evaluateMultiplicationOperator(operands, node, nodes);
         }
 
         else
@@ -252,7 +252,7 @@ void printRuntimeValue(const RuntimeValue& value)
         }, value);
 }
 
-RuntimeValue evaluateSumOperator(const std::array<RuntimeValue, 2>& operands)
+RuntimeValue evaluateSumOperator(Operands operands, const Node& node, const std::vector<Node>& nodes)
 {
     if (auto* f0{ std::get_if<float>(&operands[0]) }, * f1{ std::get_if<float>(&operands[1]) }; f0 && f1)
     {
@@ -277,7 +277,7 @@ RuntimeValue evaluateSumOperator(const std::array<RuntimeValue, 2>& operands)
     }
 
     else if ((std::holds_alternative<glm::vec3>(operands[0]) || std::holds_alternative<Eval::IPoint>(operands[0])) &&
-              std::holds_alternative<Eval::Vector>(operands[1])
+        std::holds_alternative<Eval::Vector>(operands[1])
         )
     {
         const std::optional<glm::vec3>& p{ extractPoint(operands[0]) };
@@ -289,10 +289,23 @@ RuntimeValue evaluateSumOperator(const std::array<RuntimeValue, 2>& operands)
         }
     }
 
-    return Context::RuntimeError{};
+    const std::array<int, 3>& cIdx{ node.children };
+    const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+    const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": "
+        "Operator '+' is undefined for operands (" +
+        getStringFunctionType(t0) + ", " +
+        getStringFunctionType(t1) + ").",
+        Context::ErrorSeverity::Error,
+        node.charPosition,
+        node.content.length()
+    };
 }
 
-RuntimeValue evaluateSubtractionOperator(const std::array<RuntimeValue, 2>& operands)
+RuntimeValue evaluateSubtractionOperator(Operands operands, const Node& node, const std::vector<Node>& nodes)
 {
     if (auto* f0{ std::get_if<float>(&operands[0]) }, * f1{ std::get_if<float>(&operands[1]) }; f0 && f1)
     {
@@ -330,10 +343,23 @@ RuntimeValue evaluateSubtractionOperator(const std::array<RuntimeValue, 2>& oper
         }
     }
 
-    return Context::RuntimeError{};
+    const std::array<int, 3>& cIdx{ node.children };
+    const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+    const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": "
+        "Operator '-' is undefined for operands (" +
+        getStringFunctionType(t0) + ", " +
+        getStringFunctionType(t1) + ").",
+        Context::ErrorSeverity::Error,
+        node.charPosition,
+        node.content.length()
+    };
 }
 
-RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& operands)
+RuntimeValue evaluateMultiplicationOperator(Operands operands, const Node& node, const std::vector<Node>& nodes)
 {
     if (auto* f0{ std::get_if<float>(&operands[0]) }, * f1{ std::get_if<float>(&operands[1]) }; f0 && f1)
     {
@@ -356,7 +382,7 @@ RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& o
         return Eval::Vector{ glm::vec3(0.0f), (f * v.head) - (f * v.origin) };
     }
 
-    else if (std::holds_alternative<float>(operands[0]) && 
+    else if (std::holds_alternative<float>(operands[0]) &&
         (std::holds_alternative<glm::vec3>(operands[1]) || std::holds_alternative<Eval::IPoint>(operands[1]))
         )
     {
@@ -387,7 +413,20 @@ RuntimeValue evaluateMultiplicationOperator(const std::array<RuntimeValue, 2>& o
         return glm::dot(v0->head - v0->origin, v1->head - v1->origin);
     }
 
-    return Context::RuntimeError{};
+    const std::array<int, 3>& cIdx{ node.children };
+    const Object::Type t0{ deduceTypeByIdentifierName(nodes[cIdx[0]].content) };
+    const Object::Type t1{ deduceTypeByIdentifierName(nodes[cIdx[1]].content) };
+
+    return Context::RuntimeError
+    {
+        "Semantics Error at col " + std::to_string(node.charPosition + 1) + ": "
+        "Operator '*' is undefined for operands (" +
+        getStringFunctionType(t0) + ", " +
+        getStringFunctionType(t1) + ").",
+        Context::ErrorSeverity::Error,
+        node.charPosition,
+        node.content.length()
+    };
 }
 
 RuntimeValue evaluatePointFunc(const std::vector<RuntimeValue>& args, const Node& node, const std::vector<Node>& nodes)

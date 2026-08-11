@@ -20,7 +20,7 @@ auto intersectionLinePlane(const Eval::Line& line, const Eval::Plane& plane)				
 auto intersectionLineLine(const Eval::Line& lineS, const Eval::Line& lineT)															 -> RuntimeValue; // Eval::IPoint or RuntimeError
 auto intersectionPlanePlane(const Eval::Plane& plane1, const Eval::Plane& plane2)													 -> RuntimeValue; // Eval::ILine or RuntimeError
 auto recalculateIntersect(Object& obj, const std::vector<Object>& object)															 -> bool;
-auto scanForIdenticalObject(Object::Type type, const RuntimeValue& components, const std::vector<Object>& object, int ignoreID = -1) -> bool;
+auto scanForIdenticalObject(Object::Type type, const RuntimeValue& components, const std::vector<Object>& object, int ignoreID = -1) -> int;
 auto compareRuntimeValue(Object::Type type, const RuntimeValue& components1, const RuntimeValue& components2)						 -> bool;
 auto searchObjectByID(int id, const std::vector<Object>& objectRef)																	 -> int;
 auto searchObjectIndexByName(const std::string& objName, const std::vector<Object>& object)											 -> int;

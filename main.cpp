@@ -90,7 +90,7 @@ int main()
 			const Object& obj{ Context::object[i] };
 			float distance{ getDistanceToCamera(Context::cameraPos, obj) };
 
-			if (distance < 0.0f) continue;
+			if (distance < 0.0f || obj.getType() == Object::Number || !obj.isVisible()) continue;
 
 			const float alpha{ obj.getColor().w };
 

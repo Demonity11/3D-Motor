@@ -88,9 +88,11 @@ public:
 
 	bool isMutable() const		 { return m_isMutable; }
 	bool isSelected() const		 { return m_isSelected; }
+	bool isVisible() const		 { return m_isVisible; }
 
-	void setMutable(bool status) { m_isMutable = status; }
+	void setMutable(bool isMutable)   { m_isMutable = isMutable; }
 	void setSelected(bool isSelected) { m_isSelected = isSelected; }
+	void setVisible(bool isVisible)   { m_isVisible = isVisible; }
 
 private:
 	int m_id{};
@@ -109,6 +111,7 @@ private:
 
 	bool m_isMutable{ true };
 	bool m_isSelected{ false };
+	bool m_isVisible{ true };
 };
 
 #endif

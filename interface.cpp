@@ -884,8 +884,6 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 	std::string inputText{ inputBuffer };
 
 	tokenizer(inputText, diag);
-	printTokens(Lexer::tokens);
-	std::cout << "\n";
 
 	if (diag)
 	{
@@ -895,8 +893,6 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 
 	OptName targetName{ std::nullopt };
 	std::optional<ParseResult> parseResult{ parseExp1(Lexer::tokens, diag, targetName) };
-	printNodes(Parser::nodes);
-	std::cout << "\n";
 
 	if (diag)
 	{
@@ -937,8 +933,6 @@ void processInput(char inputBuffer[128], const std::vector<FunctionArgs>& funcOv
 
 		return;
 	}
-
-	printRuntimeValue(evalObj);
 
 	if (extractAndRegisterObject(evalObj, object, Parser::nodes, targetName))
 	{
@@ -1150,7 +1144,7 @@ int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::
 	int vCount{ 0 };
 
 	// intersection
-	if (type == Object::Point && pIDs[0] >= 0)
+	if (type == Object::Point && std::holds_alternative<Eval::IPoint>(obj.getComponents()))
 	{
 		Eval::IPoint intersection{ std::get<Eval::IPoint>(obj.getComponents()) };
 
@@ -1184,7 +1178,6 @@ int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::
 
 	else if (type == Object::Vector)
 	{
-		//std::array<glm::vec3, 2> vector{ assemblyVector(obj, object) };
 		Eval::Vector vector{ std::get<Eval::Vector>(obj.getComponents()) };
 
 		glm::vec3 vecOrigin{ vector.origin };
@@ -1311,7 +1304,7 @@ void drawObjectLabels
 		const Object& obj{ object[idx] };
 		Object::Type type{ obj.getType() };
 
-		if (type == Object::Line || type == Object::Plane)
+		if (type == Object::Line || type == Object::Plane || type == Object::Number)
 			continue;
 
 		glm::vec3 targetWorldPos{};
@@ -1460,21 +1453,6 @@ bool extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 
 	std::array<int, 3> pIDs{ findParentsIDs(nodes) };
 
-	if (scanForIdenticalObject(type, evalObj, object))
-	{
-		Toast toast
-		{
-			"Object Warning",
-			"Object is already defined.",
-			ImColor{ 255, 255, 0, 0 },
-			Context::defaultToastDuration,
-			Context::defaultToastDuration
-		};
-
-		Context::toastNotifications.push_back(toast);
-		return false;
-	}
-
 	int pCount{ 0 };
 	for (size_t i{ 0 }; i < std::size(pIDs); ++i)
 	{
@@ -1499,7 +1477,7 @@ bool extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 				{
 					"Type Error",
 					"Variable reassignment only works if the type matches. Expected '" + getStringFunctionType(newObj.getType()) + "', given '" + getStringFunctionType(type) + "'.",
-					ImColor{ 255, 255, 0, 0 },
+					ImColor{ 255, 255, 0, 255 },
 					Context::defaultToastDuration,
 					Context::defaultToastDuration
 				};
@@ -1552,13 +1530,18 @@ bool extractAndRegisterObject(const RuntimeValue& evalObj, const std::vector<Obj
 		{
 			"Vertices Error",
 			"Failed to generate vertices.",
-			ImColor{ 255, 0, 0, 0 },
+			ImColor{ 255, 0, 0, 255 },
 			Context::defaultToastDuration,
 			Context::defaultToastDuration
 		};
 
 		Context::toastNotifications.push_back(toast);
 		return false;
+	}
+
+	if (int identicalObjIdx{ scanForIdenticalObject(type, evalObj, object) }; identicalObjIdx >= 0)
+	{
+		Context::object[identicalObjIdx].setVisible(false);
 	}
 
 	size_t objIdx{ createObject(std::move(obj), vCount) };
@@ -1640,6 +1623,7 @@ void debugWindow()
 					ImGui::SeparatorText("Flags");
 					ImGui::Text(std::format("isMutable: {}", obj.isMutable()).c_str());
 					ImGui::Text(std::format("isSelected: {}", obj.isSelected()).c_str());
+					ImGui::Text(std::format("isVisible: {}", obj.isVisible()).c_str());
 
 					ImGui::SeparatorText("Other");
 					const std::array<int, 3>& pIDs{ obj.getParentIDs() };

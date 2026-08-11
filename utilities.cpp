@@ -93,11 +93,7 @@ size_t createObject(Object obj, int vCount)
 	if (!Context::object.empty())
 	{
 		int previousIndex{ static_cast<int>(Context::object.size()) - 1 };
-
-		if (vCount != 0)
-		{
-			offset = Context::object[previousIndex].getOffset() + Context::object[previousIndex].getVertexCount();
-		}
+		offset = Context::object[previousIndex].getOffset() + Context::object[previousIndex].getVertexCount();
 	}
 
 	obj.setID(id);
@@ -192,6 +188,19 @@ void updateObject(int objIndex, const Object& newObj)
 			{
 				std::cerr << "WARNING::FAILED_TO_REBUILD_DEPENDENT_OBJECT: " << obj.getName() << "\n";
 			}
+		}
+
+		if (!obj.isVisible())
+		{
+			if (scanForIdenticalObject(obj.getType(), obj.getComponents(), object, obj.getID()) == -1)
+			{
+				obj.setVisible(true);
+			}
+		}
+
+		else if (int identicalIdx{ scanForIdenticalObject(obj.getType(), obj.getComponents(), object, obj.getID()) }; identicalIdx >= 0)
+		{
+			object[identicalIdx].setVisible(false);
 		}
 	}
 
@@ -689,7 +698,8 @@ bool compareRuntimeValue(Object::Type type, const RuntimeValue& components1, con
 	return isIdentical;
 }
 
-bool scanForIdenticalObject(Object::Type type, const RuntimeValue& components, const std::vector<Object>& object, int ignoreID)
+// return identical object index if it exist, -1 if not
+int scanForIdenticalObject(Object::Type type, const RuntimeValue& components, const std::vector<Object>& object, int ignoreID)
 {
 	for (size_t idx{ 8 }; idx < object.size(); ++idx)
 	{
@@ -702,11 +712,11 @@ bool scanForIdenticalObject(Object::Type type, const RuntimeValue& components, c
 
 		if (compareRuntimeValue(type, components, objComponents))
 		{
-			return true;
+			return static_cast<int>(idx);
 		}
 	}
 
-	return false;
+	return -1;
 }
 
 // return the content of each object
@@ -1302,6 +1312,9 @@ int getSelectedObjectID(const glm::vec3& rayOrigin, const glm::vec3& rayDirectio
 	for (size_t idx{ 8 }; idx < object.size(); ++idx)
 	{
 		const Object& obj{ object[idx] };
+
+		if (!obj.isVisible()) continue;
+
 		Object::Type type{ obj.getType() };
 		
 		const RuntimeValue& comp{ obj.getComponents() };
