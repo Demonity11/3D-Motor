@@ -76,16 +76,10 @@ To solve depth-buffer fighting and flickering when rendering overlapping $2\text
 | Function Command | Parameter Signatures | Derived Geometric Type | Description |
 | --- | --- | --- | --- |
 | `Point` | `Point(x, y, z)` | `Point` ($0\text{D}$) | Creates a point literal at coordinates $(x, y, z)$. Accepts nested expressions for coordinates. |
-| `Vector` | `Vector(P)` <br>
-
-<br> `Vector(P1, P2)` | `Vector` ($1\text{D}$) | Creates a directed vector from the origin to $P$, or spanning $P_1 \rightarrow P_2$. |
+| `Vector` | `Vector(P)` <br> <br> `Vector(P1, P2)` | `Vector` ($1\text{D}$) | Creates a directed vector from the origin to $P$, or spanning $P_1 \rightarrow P_2$. |
 | `Segment` | `Segment(P1, P2)` | `Segment` ($1\text{D}$) | Creates a bounded segment between points $P_1$ and $P_2$. |
-| `Line` | `Line(P, V)` <br>
-
-<br> `Line(P1, P2)` | `Line` ($1\text{D}$) | Creates an infinite line passing through $P$ along direction $V$ or connecting $P_1$ and $P_2$. |
-| `Plane` | `Plane(P, V)` <br>
-
-<br> `Plane(A, B, C)` | `Plane` ($2\text{D}$) | Constructs an infinite surface from a point and normal vector, or from 3 points. |
+| `Line` | `Line(P, V)` <br> <br> `Line(P1, P2)` | `Line` ($1\text{D}$) | Creates an infinite line passing through $P$ along direction $V$ or connecting $P_1$ and $P_2$. |
+| `Plane` | `Plane(P, V)` <br> <br> `Plane(A, B, C)` | `Plane` ($2\text{D}$) | Constructs an infinite surface from a point and normal vector, or from 3 points. |
 | `Cross` | `Cross(V1, V2)` | `Vector` ($1\text{D}$) | Calculates the vector cross product $\mathbf{V}_1 \times \mathbf{V}_2$. |
 | `Intersect` | `Intersect(Obj1, Obj2)` | `Point` / `Line` | Evaluates analytic intersections between Line-Line, Line-Plane, or Plane-Plane. |
 
