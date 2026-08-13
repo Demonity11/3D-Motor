@@ -122,36 +122,36 @@ To solve depth-buffer fighting and flickering when rendering overlapping $2\text
 
 ## 🏗️ Building the Project
 
-### Building via CMake (Terminal)
+## Building via CMake (Terminal)
 
-# 1. Clone the repository
+### 1. Clone the repository
 git clone [https://github.com/your-username/3D-Motor.git](https://github.com/your-username/3D-Motor.git)
 cd 3D-Motor
 
-# 2. Create and enter a separate build folder
+### 2. Create and enter a separate build folder
 mkdir build && cd build
 
-# 3. Configure the project (Release mode)
+### 3. Configure the project (Release mode)
 cmake .. -DCMAKE_BUILD_TYPE=Release
 
-# 4. Build the engine
+### 4. Build the engine
 cmake --build . --config Release
 
-# 5. Run the executable
-# Windows:
+### 5. Run the executable
+### Windows:
 .\bin\Release\3DMotor.exe
-# Linux / macOS:
+### Linux / macOS:
 ./bin/3DMotor
 
-### Building via Visual Studio 2022
+## Building via Visual Studio 2022
 
-# Open Visual Studio 2022.
+### Open Visual Studio 2022.
 
-# Select File $\rightarrow$ Open $\rightarrow$ Folder... and choose the repository root folder (where CMakeLists.txt is located).
+### Select File $\rightarrow$ Open $\rightarrow$ Folder... and choose the repository root folder (where CMakeLists.txt is located).
 
-# Visual Studio will automatically configure the project using CMake.
+### Visual Studio will automatically configure the project using CMake.
 
-# Select 3DMotor.exe from the target dropdown and press F5 to build and run.
+### Select 3DMotor.exe from the target dropdown and press F5 to build and run.
 
 ---
 
