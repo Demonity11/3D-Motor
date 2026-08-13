@@ -15,12 +15,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
-struct TransparentItem
-{
-	int objIndex{};
-	float alpha{};
-};
-
 struct RenderItem
 {
 	size_t objIndex{};
@@ -30,8 +24,8 @@ struct RenderItem
 
 int main()
 {
-	constexpr int width{ 960 };
-	constexpr int height{ 540 };
+	constexpr int width{ 1280 };
+	constexpr int height{ 720 };
 	std::string title{ "3[D] Motor" };
 
 	Window window{ width, height, title };
@@ -142,7 +136,7 @@ int main()
 		glDepthMask(GL_TRUE);
 
 		// render ImGui here
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 		undoRedoShortcut();
 
 		ImGui::PushFont(Context::spaceFont, 16.0f);
@@ -227,9 +221,6 @@ int main()
 
 void processInput(GLFWwindow* window)
 {
-	//if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) 
-	//	glfwSetWindowShouldClose(window, true);
-
 	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT == GLFW_PRESS))
 	{
 		Context::isPressingRightClick = true;

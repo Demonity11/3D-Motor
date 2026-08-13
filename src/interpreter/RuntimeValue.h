@@ -7,9 +7,6 @@
 #include "scene/ObjectType.h"
 #include "lexer.h"
 
-template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
 namespace Eval
 {
 	struct Vector
@@ -62,6 +59,9 @@ namespace Eval
 		std::array<ObjectType, 2> pTypes{ ObjectType::Null, ObjectType::Null };
 	};
 }
+
+template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 using RuntimeValue = std::variant
 <
