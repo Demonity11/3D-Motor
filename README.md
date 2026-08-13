@@ -125,7 +125,7 @@ To solve depth-buffer fighting and flickering when rendering overlapping $2\text
 ## Building via CMake (Terminal)
 
 ### 1. Clone the repository
-git clone [https://github.com/your-username/3D-Motor.git](https://github.com/your-username/3D-Motor.git)
+git clone [https://github.com/Demonity11/3D-Motor.git](https://github.com/your-username/3D-Motor.git)
 cd 3D-Motor
 
 ### 2. Create and enter a separate build folder
