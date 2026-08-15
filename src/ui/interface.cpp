@@ -1152,13 +1152,6 @@ int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::
 	{
 		Eval::IPoint intersection{ std::get<Eval::IPoint>(obj.getComponents()) };
 
-		if (scanForIdenticalObject(type, intersection, object, obj.getID()))
-		{
-			std::cout << intersection.point << "\n";
-			std::cerr << "INTERSECTION::ALREADY::EXISTS\n";
-			return -1;
-		}
-
 		obj.setMutable(false);
 		obj.setColor({ 0.7f, 0.3f, 0.0f, 1.0f });
 
@@ -1238,17 +1231,6 @@ int generateObjectVertices(Object& obj, const std::vector<Object>& object, std::
 		Eval::ILine intersection{ std::get<Eval::ILine>(obj.getComponents()) };
 
 		constexpr float epsilon{ 0.001f };
-		if (glm::length(intersection.line.dVecHead -intersection.line.dVecOrigin) < epsilon)
-		{
-			std::cerr << "Intersection doesn't exist.\n";
-			return -1;
-		}
-
-		if (scanForIdenticalObject(type, intersection, object, obj.getID()))
-		{
-			std::cerr << "INTERSECTION::ALREADY::EXISTS\n";
-			return -1;
-		}
 
 		obj.setMutable(false);
 		obj.setColor({ 0.7f, 0.3f, 0.0f, 1.0f });

@@ -139,7 +139,7 @@ int main()
 		//ImGui::ShowDemoWindow();
 		undoRedoShortcut();
 
-		ImGui::PushFont(Context::spaceFont, 16.0f);
+		ImGui::PushFont(Context::spaceFont);
 		ImGui::Begin("InputWindow", NULL, ImGuiWindowFlags_MenuBar);
 		getUserInput(Context::object);
 		menuBar();
