@@ -17,6 +17,7 @@
 #include <iostream>
 #include <filesystem>
 #include <format>
+#include <iterator>
 
 // initializes ImGui context
 void initializeImGui(GLFWwindow* window)
@@ -620,9 +621,9 @@ void getUserInput(std::vector<Object>& object)
 
 	pushErrorStyle(diag);
 	if (!diag)
-		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, AutocompleteCallback, &context);
+		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, std::size(inputBuffer), inputFlags, AutocompleteCallback, &context);
 	else
-		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, IM_COUNTOF(inputBuffer), inputFlags, ErrorSelectionCallback, &errorContext);
+		isEnterPressed = ImGui::InputTextWithHint("Input", example, inputBuffer, std::size(inputBuffer), inputFlags, ErrorSelectionCallback, &errorContext);
 	popErrorStyle(diag);
 
 	if (ImGui::IsItemEdited())

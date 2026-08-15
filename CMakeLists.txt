@@ -46,6 +46,18 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(glfw glm imgui)
 
+add_library(glad_lib STATIC external/glad/src/glad.c)
+
+target_include_directories(glad_lib PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include"
+)
+
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/include/imgui")
+file(COPY "${imgui_SOURCE_DIR}/" DESTINATION "${CMAKE_BINARY_DIR}/include/imgui"
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.cpp")
+file(COPY "${imgui_SOURCE_DIR}/backends/" DESTINATION "${CMAKE_BINARY_DIR}/include/imgui"
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.cpp")
+
 add_library(imgui_lib STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_demo.cpp
@@ -57,11 +69,12 @@ add_library(imgui_lib STATIC
 )
 
 target_include_directories(imgui_lib PUBLIC
-    ${imgui_SOURCE_DIR}
-    ${imgui_SOURCE_DIR}/backends
+    "${CMAKE_BINARY_DIR}/include"
+    "${CMAKE_BINARY_DIR}/include/imgui"
 )
 
 target_link_libraries(imgui_lib PUBLIC
+    glad_lib
     glfw
     OpenGL::GL
 )
@@ -80,6 +93,7 @@ target_include_directories(3DMotor PRIVATE
 
 target_link_libraries(3DMotor PRIVATE
     imgui_lib
+    glad_lib
     glm::glm
     glfw
     OpenGL::GL
@@ -87,7 +101,7 @@ target_link_libraries(3DMotor PRIVATE
 
 if(MSVC)
     target_compile_options(3DMotor PRIVATE
-        /W4
+        /W3
         /permissive-
         /utf-8
     )
