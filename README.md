@@ -122,38 +122,54 @@ To solve depth-buffer fighting and flickering when rendering overlapping $2\text
 
 ## 🏗️ Building the Project
 
-## Building via CMake (Terminal)
+### Prerequisites
+* **Operating System:** Windows 10 / 11 (64-bit)
+* **Compiler:** MSVC with ISO C++20 support (Visual Studio 2022 v17.0+)
+* **Build System:** CMake 3.20 or higher
+* **Hardware:** GPU with OpenGL 3.3 Core Profile support
 
-### 1. Clone the repository
-git clone [https://github.com/Demonity11/3D-Motor.git](https://github.com/your-username/3D-Motor.git)
-cd 3D-Motor
-
-### 2. Create and enter a separate build folder
-mkdir build && cd build
-
-### 3. Configure the project (Release mode)
-cmake .. -DCMAKE_BUILD_TYPE=Release
-
-### 4. Build the engine
-cmake --build . --config Release
-
-### 5. Run the executable
-### Windows:
-.\bin\Release\3DMotor.exe
-### Linux / macOS:
-./bin/3DMotor
-
-## Building via Visual Studio 2022
-
-### Open Visual Studio 2022.
-
-### Select File $\rightarrow$ Open $\rightarrow$ Folder... and choose the repository root folder (where CMakeLists.txt is located).
-
-### Visual Studio will automatically configure the project using CMake.
-
-### Select 3DMotor.exe from the target dropdown and press F5 to build and run.
+> **Note:** All external dependencies (`GLFW`, `GLM`, and `Dear ImGui`) are fetched and compiled automatically via CMake. No manual dependency installation is required.
 
 ---
+
+### Option 1: Terminal / PowerShell (Recommended)
+
+1. **Clone the repository:**
+``` powershell
+git clone https://github.com/Demonity11/3D-Motor.git
+cd 3D-Motor
+```
+
+2. **Create and enter an out-of-source build directory:**
+``` powershell
+mkdir build
+cd build
+```
+
+3. **Generate build files:**
+``` powershell
+cmake ..
+```
+
+4. **Compile the executable in Release mode:**
+``` powershell
+cmake --build . --config Release
+```
+
+5. **Run the engine:**
+``` powershell
+.\bin\Release\3DMotor.exe
+```
+---
+
+### Option 2: Visual Studio 2022 (Open Folder)
+
+1. Open **Visual Studio 2022**.
+2. Click **File $\rightarrow$ Open $\rightarrow$ Folder...** and select the root directory of the cloned repository (where `CMakeLists.txt` resides).
+3. Visual Studio will automatically detect the project and configure the CMake cache.
+4. Set the build configuration to **x64-Release** in the top configuration dropdown.
+5. Select **`3DMotor.exe`** as the startup target and press **F5** (or `Ctrl + F5`) to build and execute.
+
 
 ## ✍️ Author's Note
 
