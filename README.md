@@ -108,15 +108,15 @@ To solve depth-buffer fighting and flickering when rendering overlapping $2\text
 
 ### Main Interface
 
-*(Screenshot placeholder: Interactive 3D Viewport with Coordinate Axes and ImGui Terminal)*
+![Interactive 3D Viewport](media/viewport.png)
 
 ### Interactive Command Console & Real-Time Parsing
 
-*(GIF placeholder: Executing script commands, defining variables, and live visual update)*
+![Executing script commands](media/usingEngine.gif)
 
 ### Plane Intersections & Transparency Rendering
 
-*(GIF/Screenshot placeholder: Multi-plane blending with Z-buffer stability)*
+![Plane Blending](media/planeBlending.png)
 
 ---
 
